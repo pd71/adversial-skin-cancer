@@ -1,0 +1,34 @@
+# Python cache / artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store
+
+# Dataset (local only)
+data/
+
+# Trained models and heavy outputs
+models/*
+outputs/*
+
+# Keep directory structure (allow placeholders if needed later)
+!models/.gitkeep
+!outputs/.gitkeep
+!outputs/plots/.gitkeep
+!outputs/metrics/.gitkeep
+!outputs/adversarial_examples/.gitkeep
