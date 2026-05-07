@@ -8,3 +8,5 @@ opencv-python>=4.7.0
 pillow>=9.4.0
 tqdm>=4.64.0
 scipy>=1.10.0
+flask>=2.0.0
+flask-cors>=3.0.0

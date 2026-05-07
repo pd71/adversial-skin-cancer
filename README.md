@@ -13,26 +13,38 @@ Planned pipeline stages:
 
 ```text
 SkinCancerProject/
+|-- backend/
+|   |-- app.py
+|   |-- .env
+|   |-- requirements.txt
+|   |-- routes/
+|   |-- services/
+|   |-- utils/
+|   |-- uploads/
+|   |-- models/
+|   |-- outputs/
+|   |   |-- plots/
+|   |   |-- metrics/
+|   |   `-- adversarial_examples/
+|   `-- src/
+|       |-- config.py
+|       |-- utils.py
+|       |-- data_loader.py
+|       |-- train_models.py
+|       |-- evaluate_models.py
+|       |-- attacks.py
+|       |-- defenses.py
+|       |-- gradcam.py
+|       `-- run_pipeline.py
+|-- frontend/
+|   |-- src/
+|   |-- public/
+|   |-- package.json
+|   `-- vite.config.js
 |-- data/
 |   |-- HAM10000_images_part_1/
 |   |-- HAM10000_images_part_2/
 |   `-- HAM10000_metadata.csv
-|-- src/
-|   |-- config.py
-|   |-- utils.py
-|   |-- data_loader.py
-|   |-- train_models.py
-|   |-- evaluate_models.py
-|   |-- attacks.py
-|   |-- defenses.py
-|   |-- gradcam.py
-|   `-- run_pipeline.py
-|-- models/
-|-- outputs/
-|   |-- plots/
-|   |-- metrics/
-|   `-- adversarial_examples/
-|-- requirements.txt
 |-- README.md
 `-- .gitignore
 ```
@@ -103,12 +115,28 @@ Keep dataset files exactly here (already expected by config):
 
 The class label column in metadata is expected to be `dx`.
 
-## Run Commands (Current Skeleton)
+## Run Commands
 
 From project root:
 
+Run ML pipeline:
 ```bash
-python src/run_pipeline.py
+python backend/src/run_pipeline.py
+```
+
+Run Backend (FastAPI/Flask placeholder):
+```bash
+# from project root
+cd backend
+python app.py
+```
+
+Run Frontend (Vite):
+```bash
+# from project root
+cd frontend
+npm install
+npm run dev
 ```
 
 This currently:

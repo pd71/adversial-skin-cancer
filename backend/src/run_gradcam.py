@@ -37,20 +37,6 @@ def find_last_conv_layer(model: tf.keras.Model) -> str:
     raise ValueError("Could not find a Conv2D layer for Grad-CAM.")
 
 
-def _resolve_conv_layer(model: tf.keras.Model, layer_name: str) -> tf.keras.layers.Layer:
-    """Get conv layer object from top-level or nested models safely."""
-    try:
-        return model.get_layer(layer_name)
-    except Exception:
-        for layer in model.layers:
-            if isinstance(layer, tf.keras.Model):
-                try:
-                    return layer.get_layer(layer_name)
-                except Exception:
-                    continue
-    raise ValueError(f"Could not resolve conv layer object: {layer_name}")
-
-
 def generate_gradcam(
     model: tf.keras.Model,
     model_name: str,
@@ -59,39 +45,51 @@ def generate_gradcam(
     last_conv_layer_name: Optional[str] = None,
 ) -> tuple[np.ndarray, int, float]:
     """Generate Grad-CAM heatmap for a single image tensor in [0,1]."""
-    if last_conv_layer_name is None:
-        last_conv_layer_name = find_last_conv_layer(model)
+    try:
+        if last_conv_layer_name is None:
+            last_conv_layer_name = find_last_conv_layer(model)
 
-    image_tensor = tf.cast(image_tensor, tf.float32)
-    if image_tensor.shape.rank == 3:
-        image_tensor = tf.expand_dims(image_tensor, axis=0)
-    image_tensor = tf.ensure_shape(image_tensor, [1, 224, 224, 3])
-    print(f"[GradCAM] Model: {model_name} | Conv layer: {last_conv_layer_name} | Image shape: {image_tensor.shape}")
+        image_tensor = tf.cast(image_tensor, tf.float32)
+        if image_tensor.shape.rank == 3:
+            image_tensor = tf.expand_dims(image_tensor, axis=0)
+        image_tensor = tf.ensure_shape(image_tensor, [1, 224, 224, 3])
+        print(f"[GradCAM] Model: {model_name} | Conv layer: {last_conv_layer_name} | Image shape: {image_tensor.shape}")
 
-    preprocessed = preprocess_fn(image_tensor)
-    conv_layer = _resolve_conv_layer(model, last_conv_layer_name)
-    grad_model = tf.keras.models.Model(
-        [model.inputs],
-        [conv_layer.output, model.output],
-    )
+        preprocessed = preprocess_fn(image_tensor)
 
-    with tf.GradientTape() as tape:
-        conv_outputs, predictions = grad_model(preprocessed)
+        # Handle nested Functional models safely
+        inner_model = None
+        for layer in model.layers:
+            if isinstance(layer, tf.keras.Model):
+                try:
+                    layer.get_layer(last_conv_layer_name)
+                    inner_model = layer
+                    break
+                except ValueError:
+                    pass
+
+        with tf.GradientTape() as tape:
+            tape.watch(preprocessed)
+            conv_outputs, predictions = model(preprocessed)
+
         pred_index = tf.argmax(predictions[0])
         class_channel = predictions[:, pred_index]
 
-    grads = tape.gradient(class_channel, conv_outputs)
-    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
-    conv_outputs = conv_outputs[0]
+        grads = tape.gradient(class_channel, conv_outputs)
+        pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+        conv_outputs = conv_outputs[0]
 
-    heatmap = tf.reduce_sum(conv_outputs * pooled_grads, axis=-1)
-    heatmap = tf.maximum(heatmap, 0)
-    max_val = tf.reduce_max(heatmap)
-    if float(max_val.numpy()) > 0:
-        heatmap = heatmap / max_val
+        heatmap = tf.reduce_sum(conv_outputs * pooled_grads, axis=-1)
+        heatmap = tf.maximum(heatmap, 0)
+        max_val = tf.reduce_max(heatmap)
+        if float(max_val.numpy()) > 0:
+            heatmap = heatmap / max_val
 
-    confidence = float(predictions[0][pred_index].numpy())
-    return heatmap.numpy(), int(pred_index.numpy()), confidence
+        confidence = float(predictions[0][pred_index].numpy())
+        return heatmap.numpy(), int(pred_index.numpy()), confidence
+    except Exception as e:
+        print(f"[GradCAM] Error generating Grad-CAM for {model_name}: {e}")
+        raise
 
 
 def _create_overlay(image_01: np.ndarray, heatmap: np.ndarray, alpha: float = 0.4) -> tuple[np.ndarray, np.ndarray]:
@@ -115,7 +113,7 @@ def _save_gradcam_figure(
     title: str,
 ) -> None:
     """Save three-panel Grad-CAM visualization."""
-    save_path = save_path.resolve()
+    save_path = Path(save_path).resolve()
     save_path.parent.mkdir(parents=True, exist_ok=True)
     fig, axes = plt.subplots(1, 3, figsize=(12, 4))
     axes[0].imshow(original)
@@ -132,14 +130,41 @@ def _save_gradcam_figure(
 
     fig.suptitle(title, fontsize=10)
     fig.tight_layout()
-    plt.savefig(save_path, bbox_inches="tight")
+    plt.savefig(str(save_path), bbox_inches="tight")
     plt.close()
     print(f"Saved Grad-CAM to: {save_path}")
 
 
+def build_grad_model(model: tf.keras.Model, last_conv_layer_name: str) -> tf.keras.Model:
+    inner_model = None
+    for layer in model.layers:
+        if isinstance(layer, tf.keras.Model):
+            try:
+                layer.get_layer(last_conv_layer_name)
+                inner_model = layer
+                break
+            except ValueError:
+                pass
+                
+    if inner_model:
+        conv_layer = inner_model.get_layer(last_conv_layer_name)
+        inner_grad_model = tf.keras.models.Model(
+            inner_model.inputs,
+            [conv_layer.output, inner_model.output]
+        )
+        new_inputs = tf.keras.Input(shape=(224, 224, 3))
+        conv_outputs, x = inner_grad_model(new_inputs)
+        idx = model.layers.index(inner_model)
+        for layer in model.layers[idx+1:]:
+            x = layer(x)
+        return tf.keras.models.Model(new_inputs, [conv_outputs, x])
+    else:
+        conv_layer = model.get_layer(last_conv_layer_name)
+        return tf.keras.models.Model([model.inputs], [conv_layer.output, model.output])
+
 def main() -> None:
     cfg.ensure_project_dirs()
-    gradcam_dir = (cfg.PROJECT_ROOT / "outputs" / "plots" / "gradcam").resolve()
+    gradcam_dir = (cfg.PROJECT_ROOT / "backend" / "outputs" / "plots" / "gradcam").resolve()
     gradcam_dir.mkdir(parents=True, exist_ok=True)
 
     mobilenet_path = cfg.MODELS_DIR / "mobilenetv2_finetuned.keras"
@@ -161,12 +186,16 @@ def main() -> None:
     sample_ds = data_dict["test_ds"].unbatch().take(NUM_EXAMPLES_PER_MODEL)
     samples = list(sample_ds.as_numpy_iterator())
 
+    print("Building grad models...")
+    mobilenet_grad = build_grad_model(mobilenet, mobilenet_last_conv)
+    resnet_grad = build_grad_model(resnet, resnet_last_conv)
+
     print("Generating MobileNetV2 Grad-CAM examples...")
     for idx, (image_np, _) in enumerate(samples):
         try:
             image_tf = tf.convert_to_tensor(image_np, dtype=tf.float32)
             heatmap, pred_idx, conf = generate_gradcam(
-                model=mobilenet,
+                model=mobilenet_grad,
                 model_name="MobileNetV2",
                 image_tensor=image_tf,
                 preprocess_fn=lambda x: _preprocess_for("mobilenetv2", x),
@@ -186,7 +215,7 @@ def main() -> None:
         try:
             image_tf = tf.convert_to_tensor(image_np, dtype=tf.float32)
             heatmap, pred_idx, conf = generate_gradcam(
-                model=resnet,
+                model=resnet_grad,
                 model_name="ResNet50",
                 image_tensor=image_tf,
                 preprocess_fn=lambda x: _preprocess_for("resnet50", x),

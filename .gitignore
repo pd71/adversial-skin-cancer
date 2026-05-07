@@ -22,12 +22,25 @@ Thumbs.db
 # Dataset (local only)
 data/
 
-# Trained models and heavy outputs
-models/*
+# Trained model weights and heavy outputs
+backend/models/*.keras
+backend/outputs/*
 outputs/*
 
+# Node and package artifacts
+frontend/node_modules/
+
+# Local temporary files
+.badfiles.txt
+.gitdifflocal.txt
+.gitshowhead.txt
+
 # Keep directory structure (allow placeholders if needed later)
-!models/.gitkeep
+!backend/models/.gitkeep
+!backend/outputs/.gitkeep
+!backend/outputs/plots/.gitkeep
+!backend/outputs/metrics/.gitkeep
+!backend/outputs/adversarial_examples/.gitkeep
 !outputs/.gitkeep
 !outputs/plots/.gitkeep
 !outputs/metrics/.gitkeep

@@ -12,16 +12,17 @@ RANDOM_SEED = 42
 # -----------------------------
 # Paths (relative to project root)
 # -----------------------------
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 DATA_DIR = PROJECT_ROOT / "data"
 IMAGES_PART_1_DIR = DATA_DIR / "HAM10000_images_part_1"
 IMAGES_PART_2_DIR = DATA_DIR / "HAM10000_images_part_2"
 METADATA_PATH = DATA_DIR / "HAM10000_metadata.csv"
 
-SRC_DIR = PROJECT_ROOT / "src"
-MODELS_DIR = PROJECT_ROOT / "models"
-OUTPUTS_DIR = PROJECT_ROOT / "outputs"
+BACKEND_DIR = PROJECT_ROOT / "backend"
+SRC_DIR = BACKEND_DIR / "src"
+MODELS_DIR = BACKEND_DIR / "models"
+OUTPUTS_DIR = BACKEND_DIR / "outputs"
 PLOTS_DIR = OUTPUTS_DIR / "plots"
 METRICS_DIR = OUTPUTS_DIR / "metrics"
 ADVERSARIAL_EXAMPLES_DIR = OUTPUTS_DIR / "adversarial_examples"
