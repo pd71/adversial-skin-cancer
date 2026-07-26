@@ -115,6 +115,25 @@ Keep dataset files exactly here (already expected by config):
 
 The class label column in metadata is expected to be `dx`.
 
+## Model files
+
+The trained backend model weights are intentionally excluded from git because they are large.
+The following files should exist locally under `backend/models/`:
+
+- `mobilenetv2_finetuned.keras`
+- `mobilenetv2_class_mapping.json`
+- `resnet50_finetuned.keras`
+- `resnet50_class_mapping.json`
+
+If the files are missing, run the model pipeline locally after installing dependencies:
+
+```powershell
+python backend/src/model_setup.py
+python backend/src/run_pipeline.py
+```
+
+`backend/src/model_setup.py` will report any missing files and guide you.
+
 ## Run Commands
 
 From project root:
