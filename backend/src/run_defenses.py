@@ -1,4 +1,4 @@
-"""Evaluate simple defenses against FGSM/PGD adversarial attacks."""
+"""Evaluate simple defenses against FGSM, PGD, and CW adversarial attacks."""
 
 from io import BytesIO
 from pathlib import Path
@@ -18,6 +18,9 @@ FGSM_EPS = 0.03
 PGD_EPS = 0.03
 PGD_ALPHA = 0.007
 PGD_STEPS = 5
+CW_C = 0.1
+CW_STEPS = 10
+CW_LR = 0.01
 EXAMPLE_COUNT = 3
 
 
@@ -122,6 +125,31 @@ def _pgd_attack(
     return x_adv
 
 
+def _cw_attack(
+    x: tf.Tensor,
+    y: tf.Tensor,
+    probs_fn: Callable[[tf.Tensor], tf.Tensor],
+    c: float = CW_C,
+    steps: int = CW_STEPS,
+    lr: float = CW_LR,
+) -> tf.Tensor:
+    x_orig = tf.identity(x)
+    x_adv = tf.Variable(x)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+    for _ in range(steps):
+        with tf.GradientTape() as tape:
+            probs = probs_fn(x_adv)
+            true_prob = tf.reduce_sum(y * probs, axis=1)
+            other_prob = tf.reduce_max((1.0 - y) * probs, axis=1)
+            f_loss = tf.nn.relu(true_prob - other_prob)
+            l2_loss = tf.reduce_sum(tf.square(x_adv - x_orig), axis=[1, 2, 3])
+            loss = tf.reduce_mean(l2_loss + c * f_loss)
+        grads = tape.gradient(loss, x_adv)
+        optimizer.apply_gradients([(grads, x_adv)])
+        x_adv.assign(tf.clip_by_value(x_adv, 0.0, 1.0))
+    return tf.convert_to_tensor(x_adv)
+
+
 def _save_comparison_images(
     output_dir: Path,
     model_tag: str,
@@ -194,6 +222,7 @@ def main() -> None:
     attack_map = {
         "FGSM": _fgsm_attack,
         "PGD": _pgd_attack,
+        "CW": _cw_attack,
     }
 
     model_map = {
