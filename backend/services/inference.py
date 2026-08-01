@@ -70,3 +70,34 @@ def predict_ensemble(image_bytes):
         "model_used": "MobileNetV2 + ResNet50 Ensemble",
         "ensemble_prediction": True
     }
+
+
+def predict_rasc_net(image_bytes):
+    """Run prediction using RASC-Net custom model."""
+    rasc_path = cfg.MODELS_DIR / "rasc_net_finetuned.keras"
+    if not rasc_path.exists():
+        rasc_path = cfg.MODELS_DIR / "rasc_net_best.keras"
+    
+    if rasc_path.exists():
+        rasc_model = tf.keras.models.load_model(rasc_path)
+    else:
+        # Fallback to ensemble prediction if model checkpoint not trained yet
+        return predict_ensemble(image_bytes)
+
+    _, img_tensor = preprocess_image(image_bytes, "rasc_net")
+    probs = rasc_model(img_tensor, training=False).numpy()[0]
+    
+    _, _, idx2label = get_models()
+    pred_idx = int(np.argmax(probs))
+    pred_label = idx2label.get(pred_idx, str(pred_idx))
+    confidence = float(probs[pred_idx])
+    probs_dict = {idx2label.get(i, str(i)): float(p) for i, p in enumerate(probs)}
+
+    return {
+        "class": pred_label,
+        "confidence": confidence,
+        "probabilities": probs_dict,
+        "model_used": "RASC-Net (Custom Architecture)",
+        "ensemble_prediction": False
+    }
+

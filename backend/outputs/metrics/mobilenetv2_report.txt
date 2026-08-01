@@ -1,0 +1,19 @@
+MobileNetV2 Test Metrics
+============================
+Accuracy: 0.6906
+
+Classification Report:
+              precision    recall  f1-score   support
+
+       akiec     0.2979    0.4375    0.3544        32
+         bcc     0.3475    0.7885    0.4824        52
+         bkl     0.5541    0.3727    0.4457       110
+          df     0.2069    0.5455    0.3000        11
+         mel     0.3867    0.5179    0.4427       112
+          nv     0.9321    0.7779    0.8481       671
+        vasc     0.4167    0.7143    0.5263        14
+
+    accuracy                         0.6906      1002
+   macro avg     0.4488    0.5935    0.4857      1002
+weighted avg     0.7639    0.6906    0.7133      1002
+

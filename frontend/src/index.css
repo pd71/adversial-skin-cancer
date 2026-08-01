@@ -392,6 +392,30 @@ tr:last-child td {
   margin-bottom: 1.5rem;
 }
 
+/* Print Report Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-report, .printable-report * {
+    visibility: visible;
+  }
+  .printable-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
 /* Modal Animations & Glassmorphism Hover Styles */
 .learn-more-btn:hover {
   background: rgba(22, 101, 52, 0.18) !important;

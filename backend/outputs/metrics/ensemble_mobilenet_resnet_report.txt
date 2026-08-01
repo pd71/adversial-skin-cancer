@@ -1,0 +1,21 @@
+MobileNetV2 + ResNet50 Ensemble (Soft Voting)
+====================================================
+MobileNetV2 Accuracy: 0.7006
+ResNet50 Accuracy:    0.6697
+Ensemble Accuracy:    0.6926
+
+Classification Report (Ensemble):
+              precision    recall  f1-score   support
+
+       akiec     0.0000    0.0000    0.0000        32
+         bcc     0.7500    0.1731    0.2812        52
+         bkl     0.5455    0.1091    0.1818       110
+          df     0.0000    0.0000    0.0000        11
+         mel     0.0000    0.0000    0.0000       112
+          nv     0.6985    0.9911    0.8195       671
+        vasc     0.7273    0.5714    0.6400        14
+
+    accuracy                         0.6926      1002
+   macro avg     0.3888    0.2635    0.2746      1002
+weighted avg     0.5767    0.6926    0.5923      1002
+

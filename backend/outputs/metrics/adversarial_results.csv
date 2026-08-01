@@ -1,0 +1,4 @@
+Model,Clean_Accuracy,FGSM_Accuracy,PGD_Accuracy,CW_Accuracy
+MobileNetV2,0.84,0.32,0.0,0.1
+ResNet50,0.74,0.12,0.0,0.1
+Soft Voting Ensemble,0.82,0.28,0.0,0.1

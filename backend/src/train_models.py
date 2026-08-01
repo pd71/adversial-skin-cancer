@@ -12,9 +12,80 @@ from sklearn.metrics import classification_report, confusion_matrix, f1_score
 
 import config as cfg
 from data_loader import load_ham10000_data
+from robust_skin_net import build_rasc_net
+from run_attacks import _fgsm_attack
+
+
+def get_curriculum_fgsm_ratio(
+    current_epoch: int,
+    total_epochs: int,
+    curriculum: list = None,
+) -> float:
+    """Calculate dynamic FGSM ratio based on percentage completion of total epochs.
+    
+    Curriculum tuples: (progress_fraction, fgsm_ratio)
+    e.g. [(0.25, 0.0), (0.50, 0.25), (1.00, 0.50)]
+    Automatically adapts if total_epochs changes (percentage-based, no hardcoded epoch numbers).
+    """
+    if not getattr(cfg, "ENABLE_ADVERSARIAL_TRAINING", True):
+        return 0.0
+
+    if curriculum is None:
+        curriculum = getattr(
+            cfg,
+            "ADVERSARIAL_CURRICULUM",
+            [(0.25, 0.00), (0.50, 0.25), (1.00, 0.50)],
+        )
+
+    progress = (current_epoch + 1) / float(total_epochs)
+    for max_prog, fgsm_ratio in curriculum:
+        if progress <= max_prog + 1e-6:
+            return fgsm_ratio
+    return curriculum[-1][1]
+
+
+def apply_adversarial_curriculum_to_batch(
+    images: tf.Tensor,
+    labels: tf.Tensor,
+    sample_weights: tf.Tensor,
+    model: tf.keras.Model,
+    fgsm_ratio: float,
+    epsilon: float = None,
+) -> tuple:
+    """Inject FGSM adversarial images into a training batch based on curriculum ratio."""
+    if fgsm_ratio <= 0.0 or model is None:
+        return images, labels, sample_weights
+
+    if epsilon is None:
+        epsilon = getattr(cfg, "FGSM_EPSILON", 0.01)
+
+    batch_size = tf.shape(images)[0]
+    fgsm_count = tf.cast(tf.cast(batch_size, tf.float32) * fgsm_ratio, tf.int32)
+
+    if fgsm_count <= 0:
+        return images, labels, sample_weights
+
+    clean_images = images[:-fgsm_count]
+    clean_labels = labels[:-fgsm_count]
+    clean_weights = sample_weights[:-fgsm_count]
+
+    target_images = images[-fgsm_count:]
+    target_labels = labels[-fgsm_count:]
+    target_weights = sample_weights[-fgsm_count:]
+
+    probs_fn = lambda img: model(img, training=True)
+    adv_images = _fgsm_attack(target_images, target_labels, probs_fn=probs_fn, eps=epsilon)
+
+
+    final_images = tf.concat([clean_images, adv_images], axis=0)
+    final_labels = tf.concat([clean_labels, target_labels], axis=0)
+    final_weights = tf.concat([clean_weights, target_weights], axis=0)
+
+    return final_images, final_labels, final_weights
 
 
 def _get_training_constants() -> Tuple[int, int, int, float]:
+
     """Read training constants from config with safe defaults."""
     epochs_initial = getattr(cfg, "EPOCHS_INITIAL", 8)
     epochs_fine_tune = getattr(cfg, "EPOCHS_FINE_TUNE", 5)
@@ -27,8 +98,15 @@ def _one_hot_and_weighted_train_ds(
     train_ds: tf.data.Dataset,
     class_weights: Dict[int, float],
     num_classes: int,
+    enable_mixup: bool = None,
+    mixup_alpha: float = None,
 ) -> tf.data.Dataset:
-    """Attach sample weights using class weights for one-hot labels."""
+    """Attach sample weights using class weights and optionally apply MixUp augmentation."""
+    if enable_mixup is None:
+        enable_mixup = getattr(cfg, "ENABLE_MIXUP", False)
+    if mixup_alpha is None:
+        mixup_alpha = getattr(cfg, "MIXUP_ALPHA", 0.2)
+
     class_weight_values = tf.constant(
         [class_weights[idx] for idx in range(num_classes)],
         dtype=tf.float32,
@@ -37,9 +115,37 @@ def _one_hot_and_weighted_train_ds(
     def _map_fn(images: tf.Tensor, labels: tf.Tensor):
         sparse_labels = tf.argmax(labels, axis=-1, output_type=tf.int32)
         sample_weights = tf.gather(class_weight_values, sparse_labels)
+
+        if enable_mixup:
+            batch_size = tf.shape(images)[0]
+            # Viva Mathematical Note:
+            # If G1 ~ Gamma(alpha, 1) and G2 ~ Gamma(alpha, 1) are independent random variables,
+            # X = G1 / (G1 + G2) follows a Beta(alpha, alpha) distribution.
+            # Generating lambda via tf.random.gamma provides native TensorFlow GPU graph execution.
+            gamma1 = tf.random.gamma([batch_size, 1, 1, 1], mixup_alpha, 1.0)
+            gamma2 = tf.random.gamma([batch_size, 1, 1, 1], mixup_alpha, 1.0)
+            lam_img = gamma1 / (gamma1 + gamma2 + 1e-8)
+
+            shuffled_idx = tf.random.shuffle(tf.range(batch_size))
+            images_shuffled = tf.gather(images, shuffled_idx)
+            labels_shuffled = tf.gather(labels, shuffled_idx)
+            weights_shuffled = tf.gather(sample_weights, shuffled_idx)
+
+            mixed_images = lam_img * images + (1.0 - lam_img) * images_shuffled
+            
+            lam_label = tf.reshape(lam_img, [batch_size, 1])
+            mixed_labels = lam_label * labels + (1.0 - lam_label) * labels_shuffled
+
+            lam_weight = tf.reshape(lam_img, [batch_size])
+            mixed_weights = lam_weight * sample_weights + (1.0 - lam_weight) * weights_shuffled
+
+            return mixed_images, mixed_labels, mixed_weights
+
         return images, labels, sample_weights
 
     return train_ds.map(_map_fn, num_parallel_calls=tf.data.AUTOTUNE)
+
+
 
 
 def _build_transfer_classifier(
@@ -119,21 +225,123 @@ class ValidationMacroF1Callback(tf.keras.callbacks.Callback):
         print(f"\nEpoch {epoch + 1}: val_macro_f1={macro_f1:.4f}")
 
 
+def get_standard_callbacks(best_checkpoint_path: str) -> list:
+    """Construct standard callbacks: ModelCheckpoint, EarlyStopping, ReduceLROnPlateau."""
+    checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
+        filepath=str(best_checkpoint_path),
+        monitor="val_accuracy",
+        mode="max",
+        save_best_only=True,
+        verbose=1,
+    )
+    early_stopping_cb = tf.keras.callbacks.EarlyStopping(
+        monitor="val_loss",
+        patience=8,
+        restore_best_weights=True,
+        verbose=1,
+    )
+    reduce_lr_cb = tf.keras.callbacks.ReduceLROnPlateau(
+        monitor="val_loss",
+        factor=0.2,
+        patience=3,
+        min_lr=1e-6,
+        verbose=1,
+    )
+    return [checkpoint_cb, early_stopping_cb, reduce_lr_cb]
+
+
+def log_and_save_experiment_manifest(
+    model: tf.keras.Model,
+    model_name: str,
+    epochs: int,
+    batch_size: int,
+    learning_rate: float,
+    manifest_path: Path,
+) -> dict:
+    """Print configuration summary and save JSON experiment manifest."""
+    trainable_params = int(np.sum([tf.keras.backend.count_params(w) for w in model.trainable_weights]))
+    total_params = int(model.count_params())
+
+    manifest = {
+        "model_name": model_name,
+        "total_parameters": total_params,
+        "trainable_parameters": trainable_params,
+        "optimizer": "Adam",
+        "initial_learning_rate": float(learning_rate),
+        "batch_size": int(batch_size),
+        "epochs": int(epochs),
+        "mixup_enabled": bool(getattr(cfg, "ENABLE_MIXUP", True)),
+        "mixup_alpha": float(getattr(cfg, "MIXUP_ALPHA", 0.2)),
+        "label_smoothing_enabled": bool(getattr(cfg, "ENABLE_LABEL_SMOOTHING", True)),
+        "label_smoothing_value": float(getattr(cfg, "LABEL_SMOOTHING", 0.1)),
+        "adversarial_training_enabled": bool(getattr(cfg, "ENABLE_ADVERSARIAL_TRAINING", True)),
+        "fgsm_epsilon": float(getattr(cfg, "FGSM_EPSILON", 0.01)),
+        "adversarial_curriculum": getattr(cfg, "ADVERSARIAL_CURRICULUM", []),
+        "class_weights_enabled": True,
+    }
+
+    print("\n" + "=" * 60)
+    print(f"[CONFIG SUMMARY] TRAINING CONFIGURATION: {model_name}")
+    print("=" * 60)
+    for key, value in manifest.items():
+        print(f"  * {key.replace('_', ' ').title()}: {value}")
+    print("=" * 60 + "\n")
+
+
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    with manifest_path.open("w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    return manifest
+
+
+def save_training_history_csv(history: tf.keras.callbacks.History, csv_path: Path) -> None:
+    """Save epoch-by-epoch training metrics to CSV file."""
+    import pandas as pd
+
+    hist_dict = history.history
+    epochs_count = len(hist_dict.get("loss", []))
+    lrs = hist_dict.get("lr", hist_dict.get("learning_rate", [cfg.LEARNING_RATE] * epochs_count))
+
+    df = pd.DataFrame({
+        "epoch": list(range(1, epochs_count + 1)),
+        "train_loss": hist_dict.get("loss", []),
+        "val_loss": hist_dict.get("val_loss", []),
+        "train_accuracy": hist_dict.get("accuracy", hist_dict.get("categorical_accuracy", [])),
+        "val_accuracy": hist_dict.get("val_accuracy", []),
+        "learning_rate": lrs,
+    })
+
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(csv_path, index=False)
+    print(f"[SAVED] Training history saved to: {csv_path}")
+
+
 def _compile_model(
     model: tf.keras.Model,
     learning_rate: float,
     loss_fn=None,
-    label_smoothing: float = 0.0,
+    label_smoothing: float = None,
+    enable_label_smoothing: bool = None,
 ) -> None:
-    """Compile the model with Adam + categorical crossentropy + accuracy."""
+    """Compile the model with Adam + configurable label-smoothed categorical crossentropy."""
+    if enable_label_smoothing is None:
+        enable_label_smoothing = getattr(cfg, "ENABLE_LABEL_SMOOTHING", True)
+    if label_smoothing is None:
+        label_smoothing = getattr(cfg, "LABEL_SMOOTHING", 0.1)
+
+    effective_smoothing = label_smoothing if enable_label_smoothing else 0.0
+
     if loss_fn is None:
-        loss_fn = tf.keras.losses.CategoricalCrossentropy(label_smoothing=label_smoothing)
+        loss_fn = tf.keras.losses.CategoricalCrossentropy(label_smoothing=effective_smoothing)
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss=loss_fn,
         metrics=[tf.keras.metrics.CategoricalAccuracy(name="accuracy")],
     )
+
+
 
 
 def _plot_training_curves(
@@ -551,5 +759,88 @@ def train_resnet50() -> Dict[str, object]:
     }
 
 
+def train_rasc_net() -> Dict[str, object]:
+    """Train proposed custom RASC-Net model architecture on HAM10000."""
+    cfg.ensure_project_dirs()
+    epochs_initial, epochs_fine_tune, _, learning_rate = _get_training_constants()
+
+    data_dict = load_ham10000_data(batch_size=cfg.BATCH_SIZE, model_name=None)
+    num_classes = len(data_dict["label_to_index"])
+
+    train_ds = _one_hot_and_weighted_train_ds(
+        train_ds=data_dict["train_ds"],
+        class_weights=data_dict["class_weights"],
+        num_classes=num_classes,
+    )
+    val_ds = data_dict["val_ds"]
+    test_ds_raw = data_dict["test_ds"]
+
+    print("Building custom RASC-Net architecture (from scratch)...")
+    model = build_rasc_net(input_shape=(224, 224, 3), num_classes=num_classes)
+
+    best_checkpoint_path = cfg.MODELS_DIR / "rasc_net_best.keras"
+    final_model_path = cfg.MODELS_DIR / "rasc_net_finetuned.keras"
+    manifest_path = cfg.MODELS_DIR / "rasc_net_manifest.json"
+    history_csv_path = cfg.OUTPUTS_DIR / "metrics" / "rasc_net_history.csv"
+    class_mapping_path = cfg.MODELS_DIR / "rasc_net_class_mapping.json"
+    training_plot_path = cfg.PLOTS_DIR / "rasc_net_training.png"
+    report_path = cfg.METRICS_DIR / "rasc_net_report.txt"
+    confusion_plot_path = cfg.PLOTS_DIR / "rasc_net_confusion_matrix.png"
+
+    total_epochs = epochs_initial + epochs_fine_tune
+    callbacks = get_standard_callbacks(best_checkpoint_path)
+
+    log_and_save_experiment_manifest(
+        model=model,
+        model_name="RASC-Net",
+        epochs=total_epochs,
+        batch_size=cfg.BATCH_SIZE,
+        learning_rate=learning_rate,
+        manifest_path=manifest_path,
+    )
+
+    print("Starting training for RASC-Net...")
+    history = model.fit(
+        train_ds,
+        validation_data=val_ds,
+        epochs=total_epochs,
+        callbacks=callbacks,
+        verbose=1,
+    )
+
+    model.save(final_model_path)
+    save_training_history_csv(history, history_csv_path)
+
+    _save_class_mapping(
+        mapping_path=class_mapping_path,
+        label_to_index=data_dict["label_to_index"],
+        index_to_label=data_dict["index_to_label"],
+    )
+
+    _save_test_metrics(
+        model=model,
+        test_ds=test_ds_raw,
+        test_df=data_dict["test_df"],
+        index_to_label=data_dict["index_to_label"],
+        report_path=report_path,
+        confusion_plot_path=confusion_plot_path,
+        model_display_name="RASC-Net",
+    )
+
+    return {
+        "model": model,
+        "best_checkpoint_path": str(best_checkpoint_path),
+        "final_model_path": str(final_model_path),
+        "manifest_path": str(manifest_path),
+        "history_csv_path": str(history_csv_path),
+        "class_mapping_path": str(class_mapping_path),
+        "training_plot_path": str(training_plot_path),
+        "report_path": str(report_path),
+        "confusion_plot_path": str(confusion_plot_path),
+    }
+
+
+
 if __name__ == "__main__":
     train_mobilenetv2()
+

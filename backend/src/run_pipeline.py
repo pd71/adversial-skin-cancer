@@ -23,7 +23,8 @@ from config import (
     dataset_paths_exist,
     ensure_project_dirs,
 )
-from train_models import train_efficientnetb0, train_mobilenetv2, train_resnet50
+from train_models import train_efficientnetb0, train_mobilenetv2, train_resnet50, train_rasc_net
+
 
 
 def set_global_seed(seed: int = RANDOM_SEED) -> None:
@@ -92,6 +93,20 @@ def main() -> None:
         print(f"Training plot   : {resnet_artifacts['training_plot_path']}")
         print(f"Metrics report  : {resnet_artifacts['report_path']}")
         print(f"Confusion plot  : {resnet_artifacts['confusion_plot_path']}")
+
+    rasc_final_model = MODELS_DIR / "rasc_net_finetuned.keras"
+    if rasc_final_model.exists() and not FORCE_RETRAIN:
+        print("\nRASC-Net already trained, skipping...")
+    else:
+        print("\n[RUN] Training RASC-Net (Custom Architecture)...")
+        rasc_artifacts = train_rasc_net()
+        print("\n[DONE] RASC-Net training complete.")
+        print(f"Best checkpoint : {rasc_artifacts['best_checkpoint_path']}")
+        print(f"Final model     : {rasc_artifacts['final_model_path']}")
+        print(f"Training plot   : {rasc_artifacts['training_plot_path']}")
+        print(f"Metrics report  : {rasc_artifacts['report_path']}")
+        print(f"Confusion plot  : {rasc_artifacts['confusion_plot_path']}")
+
 
 
 if __name__ == "__main__":

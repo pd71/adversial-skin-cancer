@@ -1,0 +1,19 @@
+ResNet50 Test Metrics
+============================
+Accuracy: 0.7585
+
+Classification Report:
+              precision    recall  f1-score   support
+
+       akiec     0.4386    0.7812    0.5618        32
+         bcc     0.4648    0.6346    0.5366        52
+         bkl     0.6452    0.7273    0.6838       110
+          df     0.6000    0.5455    0.5714        11
+         mel     0.4269    0.6518    0.5159       112
+          nv     0.9620    0.7928    0.8693       671
+        vasc     0.6875    0.7857    0.7333        14
+
+    accuracy                         0.7585      1002
+   macro avg     0.6036    0.7027    0.6389      1002
+weighted avg     0.8171    0.7585    0.7772      1002
+
