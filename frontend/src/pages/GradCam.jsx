@@ -3,6 +3,8 @@ import axios from 'axios';
 import { Eye, RefreshCw, AlertTriangle, Sparkles } from 'lucide-react';
 import ImageUploadCard from '../components/ImageUploadCard';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 const GradCam = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -33,7 +35,7 @@ const GradCam = () => {
     formData.append('image', selectedFile);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/gradcam', formData);
+      const response = await axios.post(`${API_BASE}/api/gradcam`, formData);
       setResults(response.data);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to generate Grad-CAM visualization.');

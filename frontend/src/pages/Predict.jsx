@@ -8,6 +8,8 @@ import ImageUploadCard from '../components/ImageUploadCard';
 import SearchableCombobox from '../components/SearchableCombobox';
 import medicalOptions from '../data/medicalOptions';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 // React Error Boundary to prevent page crashes
 class GradcamErrorBoundary extends React.Component {
   constructor(props) {
@@ -101,7 +103,7 @@ const Predict = () => {
     gradcamFormData.append('image', file);
 
     try {
-      const gradcamRes = await axios.post('http://localhost:5000/api/gradcam', gradcamFormData, {
+      const gradcamRes = await axios.post(`${API_BASE}/api/gradcam`, gradcamFormData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -138,7 +140,7 @@ const Predict = () => {
     formData.append('metadata', JSON.stringify(metadata));
 
     try {
-      const res = await axios.post('http://localhost:5000/api/predict', formData, {
+      const res = await axios.post(`${API_BASE}/api/predict`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -188,7 +190,7 @@ const Predict = () => {
           <div className="flex items-center space-x-3">
             <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
               <Sparkles className="w-4 h-4 mr-1.5 text-[#8B6B4A]" />
-              Searchable Medical Comboboxes Active
+              RASC-Net Architecture Active
             </span>
           </div>
         </div>

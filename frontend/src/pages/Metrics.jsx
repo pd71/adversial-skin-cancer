@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { 
-  BarChart2, ShieldCheck, Activity, Layers, Award, Cpu, HardDrive, Zap, RefreshCw, FileText
+  BarChart2, ShieldCheck, Activity, Layers, Award, Cpu
 } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 const MASTER_BENCHMARK_DATA = [
   {
@@ -108,7 +110,7 @@ const Metrics = () => {
     const fetchMetrics = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/metrics');
+        const response = await axios.get(`${API_BASE}/api/metrics`);
         if (response.data?.data?.models_benchmark) {
           setData(response.data.data);
         }
@@ -122,18 +124,18 @@ const Metrics = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F7F3EC] text-[#4B3B2A] pb-16">
-      <div className="max-w-[1400px] mx-auto px-8 py-8 space-y-8">
+    <div className="min-h-screen bg-[#F8F5F0] text-[#3B2F2F] pb-16">
+      <div className="max-w-[1200px] mx-auto px-6 py-8 space-y-8">
         
         {/* Header */}
-        <div className="border-b border-[#E6DFD5] pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="border-b border-[#E7DDD2] pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center space-x-3">
-              <div className="p-3 bg-[#8B6B4A]/10 text-[#8B6B4A] rounded-2xl border border-[#E6DFD5]">
+              <div className="p-3 bg-[#8B6B4A]/10 text-[#8B6B4A] rounded-2xl border border-[#E7DDD2]">
                 <BarChart2 className="w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-[#4B3B2A] tracking-tight">
+                <h1 className="text-3xl font-bold text-[#3B2F2F] tracking-tight">
                   Scientific Metrics & Benchmark Dashboard
                 </h1>
                 <p className="text-sm text-[#7A624A] mt-1">
@@ -152,7 +154,7 @@ const Metrics = () => {
         </div>
 
         {/* Recommended Production Model Highlight Card */}
-        <div className="bg-gradient-to-r from-[#8B6B4A] via-[#B89B72] to-[#6E5338] rounded-2xl p-6 shadow-xl text-white relative overflow-hidden">
+        <div className="bg-gradient-to-r from-[#8B6B4A] via-[#C8A97E] to-[#6E5338] rounded-2xl p-6 shadow-xl text-white relative overflow-hidden">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
             <div className="space-y-2">
               <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/20 text-white tracking-wide uppercase backdrop-blur-sm">
@@ -161,7 +163,7 @@ const Metrics = () => {
               <h2 className="text-2xl font-extrabold text-white">
                 RASC-Net Proposed (Curriculum Adv Training + MixUp + Label Smoothing)
               </h2>
-              <p className="text-sm text-[#F7F3EC] max-w-3xl leading-relaxed">
+              <p className="text-sm text-[#F8F5F0] max-w-3xl leading-relaxed">
                 Demonstrates superior overall adversarial robustness (<strong>38.00% Mean Robustness Score</strong>) across FGSM (48%), PGD (6%), and CW (60%) gradient attacks, while maintaining an edge-friendly footprint of <strong>2.88M parameters (33.25 MB)</strong>.
               </p>
             </div>
@@ -188,7 +190,7 @@ const Metrics = () => {
         </div>
 
         {/* Tab Controls */}
-        <div className="flex space-x-2 border-b border-[#E6DFD5] pb-3">
+        <div className="flex space-x-2 border-b border-[#E7DDD2] pb-3">
           {[
             { id: 'master', label: 'Master Benchmark Table', icon: Layers },
             { id: 'clean', label: 'Clean Performance', icon: Activity },
@@ -204,7 +206,7 @@ const Metrics = () => {
                 className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
                   isActive
                     ? 'bg-[#8B6B4A] text-white shadow-md shadow-[#8B6B4A]/20'
-                    : 'bg-[#FFFDF9] text-[#5C4A38] hover:bg-[#F4EFE6] hover:text-[#4B3B2A] border border-[#E6DFD5]'
+                    : 'bg-[#FFFDF9] text-[#5C4A38] hover:bg-[#F4EFE6] hover:text-[#3B2F2F] border border-[#E7DDD2]'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -216,9 +218,9 @@ const Metrics = () => {
 
         {/* 1. Master Comparison Table */}
         {activeTab === 'master' && (
-          <div className="bg-[#FFFDF9] rounded-2xl p-6 shadow-md border border-[#E6DFD5] space-y-6">
+          <div className="bg-[#FFFDF9] rounded-2xl p-6 shadow-md border border-[#E7DDD2] space-y-6">
             <div>
-              <h3 className="text-xl font-semibold text-[#4B3B2A] flex items-center space-x-2">
+              <h3 className="text-xl font-semibold text-[#3B2F2F] flex items-center space-x-2">
                 <Layers className="w-5 h-5 text-[#8B6B4A]" />
                 <span>Master Scientific Benchmark Comparison</span>
               </h3>
@@ -228,8 +230,8 @@ const Metrics = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left text-[#4B3B2A]">
-                <thead className="text-xs text-[#7A624A] uppercase bg-[#F7F3EC] border-b border-[#E6DFD5]">
+              <table className="w-full text-sm text-left text-[#3B2F2F]">
+                <thead className="text-xs text-[#7A624A] uppercase bg-[#F8F5F0] border-b border-[#E7DDD2]">
                   <tr>
                     <th className="px-4 py-3.5">Model Architecture</th>
                     <th className="px-4 py-3.5">Clean Acc (95% CI)</th>
@@ -248,11 +250,11 @@ const Metrics = () => {
                   {MASTER_BENCHMARK_DATA.map((row, idx) => (
                     <tr 
                       key={idx} 
-                      className={`hover:bg-[#F7F3EC]/80 transition-colors ${
+                      className={`hover:bg-[#F8F5F0]/80 transition-colors ${
                         row.is_recommended ? 'bg-[#F4EFE6]/60 border-l-4 border-l-[#8B6B4A]' : ''
                       }`}
                     >
-                      <td className="px-4 py-4 font-semibold text-[#4B3B2A] flex items-center space-x-2">
+                      <td className="px-4 py-4 font-semibold text-[#3B2F2F] flex items-center space-x-2">
                         <span>{row.model_name}</span>
                         {row.is_recommended && (
                           <span className="bg-[#8B6B4A] text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">
@@ -260,7 +262,7 @@ const Metrics = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-4 font-medium text-[#4B3B2A]">
+                      <td className="px-4 py-4 font-medium text-[#3B2F2F]">
                         {row.clean_acc.toFixed(2)}% <span className="text-xs text-[#7A624A] block">{row.ci_95}</span>
                       </td>
                       <td className="px-4 py-4 text-[#5F8D6E] font-bold">{row.fgsm_acc.toFixed(2)}%</td>
@@ -287,11 +289,11 @@ const Metrics = () => {
               <div 
                 key={idx}
                 className={`bg-[#FFFDF9] border rounded-2xl p-6 space-y-4 shadow-md ${
-                  row.is_recommended ? 'border-[#8B6B4A] bg-[#F4EFE6]/30' : 'border-[#E6DFD5]'
+                  row.is_recommended ? 'border-[#8B6B4A] bg-[#F4EFE6]/30' : 'border-[#E7DDD2]'
                 }`}
               >
                 <div className="flex items-center justify-between border-b border-[#F4EFE6] pb-3">
-                  <h4 className="text-lg font-bold text-[#4B3B2A] flex items-center space-x-2">
+                  <h4 className="text-lg font-bold text-[#3B2F2F] flex items-center space-x-2">
                     <span>{row.model_name}</span>
                   </h4>
                   {row.is_recommended && (
@@ -302,27 +304,27 @@ const Metrics = () => {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                  <div className="bg-[#F7F3EC] p-3 rounded-xl border border-[#E6DFD5]">
+                  <div className="bg-[#F8F5F0] p-3 rounded-xl border border-[#E7DDD2]">
                     <div className="text-xs text-[#7A624A] font-medium">Clean Accuracy</div>
                     <div className="text-lg font-bold text-[#8B6B4A]">{row.clean_acc}%</div>
                   </div>
-                  <div className="bg-[#F7F3EC] p-3 rounded-xl border border-[#E6DFD5]">
+                  <div className="bg-[#F8F5F0] p-3 rounded-xl border border-[#E7DDD2]">
                     <div className="text-xs text-[#7A624A] font-medium">Weighted Precision</div>
-                    <div className="text-lg font-bold text-[#B89B72]">{row.weighted_p}%</div>
+                    <div className="text-lg font-bold text-[#C8A97E]">{row.weighted_p}%</div>
                   </div>
-                  <div className="bg-[#F7F3EC] p-3 rounded-xl border border-[#E6DFD5]">
+                  <div className="bg-[#F8F5F0] p-3 rounded-xl border border-[#E7DDD2]">
                     <div className="text-xs text-[#7A624A] font-medium">Weighted Recall</div>
                     <div className="text-lg font-bold text-[#6E5338]">{row.weighted_r}%</div>
                   </div>
-                  <div className="bg-[#F7F3EC] p-3 rounded-xl border border-[#E6DFD5]">
+                  <div className="bg-[#F8F5F0] p-3 rounded-xl border border-[#E7DDD2]">
                     <div className="text-xs text-[#7A624A] font-medium">Macro F1</div>
                     <div className="text-lg font-bold text-[#5F8D6E]">{row.macro_f1}%</div>
                   </div>
                 </div>
 
                 <div className="text-xs text-[#7A624A] pt-2 border-t border-[#F4EFE6] flex justify-between">
-                  <span>95% Confidence Interval: <strong className="text-[#4B3B2A]">{row.ci_95}</strong></span>
-                  <span>Brier Score: <strong className="text-[#4B3B2A]">{row.brier}</strong></span>
+                  <span>95% Confidence Interval: <strong className="text-[#3B2F2F]">{row.ci_95}</strong></span>
+                  <span>Brier Score: <strong className="text-[#3B2F2F]">{row.brier}</strong></span>
                 </div>
               </div>
             ))}
@@ -336,11 +338,11 @@ const Metrics = () => {
               <div 
                 key={idx}
                 className={`bg-[#FFFDF9] border rounded-2xl p-6 space-y-5 shadow-md ${
-                  row.is_recommended ? 'border-[#5F8D6E] bg-[#E8F0E9]/30' : 'border-[#E6DFD5]'
+                  row.is_recommended ? 'border-[#5F8D6E] bg-[#E8F0E9]/30' : 'border-[#E7DDD2]'
                 }`}
               >
                 <div className="flex items-center justify-between border-b border-[#F4EFE6] pb-3">
-                  <h4 className="text-lg font-bold text-[#4B3B2A]">{row.model_name}</h4>
+                  <h4 className="text-lg font-bold text-[#3B2F2F]">{row.model_name}</h4>
                   <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#E8F0E9] text-[#5F8D6E] border border-[#C5DDC8]">
                     Mean Robustness: <strong className="text-[#2D5A38]">{row.robustness_score}%</strong>
                   </span>
@@ -370,15 +372,15 @@ const Metrics = () => {
                   <div>
                     <div className="flex justify-between text-xs font-medium text-[#5C4A38] mb-1">
                       <span>Carlini-Wagner (CW) Accuracy (10-step)</span>
-                      <span className="font-bold text-[#B89B72]">{row.cw_acc}%</span>
+                      <span className="font-bold text-[#C8A97E]">{row.cw_acc}%</span>
                     </div>
                     <div className="w-full bg-[#F4EFE6] h-2.5 rounded-full overflow-hidden">
-                      <div className="bg-[#B89B72] h-full rounded-full animate-progress-bar" style={{ width: `${row.cw_acc}%` }}></div>
+                      <div className="bg-[#C8A97E] h-full rounded-full animate-progress-bar" style={{ width: `${row.cw_acc}%` }}></div>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3 bg-[#F7F3EC] rounded-xl border border-[#E6DFD5] text-xs text-[#5C4A38] flex justify-between">
+                <div className="p-3 bg-[#F8F5F0] rounded-xl border border-[#E7DDD2] text-xs text-[#5C4A38] flex justify-between">
                   <span>Defense Recovery Rate: <strong className="text-[#8B6B4A]">{row.recovery_rate}%</strong></span>
                   <span>Post-Defense Accuracy: <strong className="text-[#5F8D6E]">{row.defended_acc}%</strong></span>
                 </div>
@@ -394,30 +396,30 @@ const Metrics = () => {
               <div 
                 key={idx}
                 className={`bg-[#FFFDF9] border rounded-2xl p-6 space-y-4 shadow-md ${
-                  row.is_recommended ? 'border-[#B89B72] bg-[#F4EFE6]/30' : 'border-[#E6DFD5]'
+                  row.is_recommended ? 'border-[#C8A97E] bg-[#F4EFE6]/30' : 'border-[#E7DDD2]'
                 }`}
               >
                 <div className="flex items-center justify-between border-b border-[#F4EFE6] pb-3">
-                  <h4 className="text-lg font-bold text-[#4B3B2A]">{row.model_name}</h4>
-                  <span className="text-xs px-3 py-1 rounded-full bg-[#F4EFE6] text-[#8B6B4A] font-bold border border-[#E6DFD5]">
+                  <h4 className="text-lg font-bold text-[#3B2F2F]">{row.model_name}</h4>
+                  <span className="text-xs px-3 py-1 rounded-full bg-[#F4EFE6] text-[#8B6B4A] font-bold border border-[#E7DDD2]">
                     {row.size_mb}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                  <div className="bg-[#F7F3EC] p-3 rounded-xl border border-[#E6DFD5]">
+                  <div className="bg-[#F8F5F0] p-3 rounded-xl border border-[#E7DDD2]">
                     <div className="text-xs text-[#7A624A] font-medium">Parameters</div>
                     <div className="text-sm font-bold text-[#8B6B4A]">{row.params}</div>
                   </div>
-                  <div className="bg-[#F7F3EC] p-3 rounded-xl border border-[#E6DFD5]">
+                  <div className="bg-[#F8F5F0] p-3 rounded-xl border border-[#E7DDD2]">
                     <div className="text-xs text-[#7A624A] font-medium">FLOPs</div>
-                    <div className="text-sm font-bold text-[#B89B72]">{row.flops}</div>
+                    <div className="text-sm font-bold text-[#C8A97E]">{row.flops}</div>
                   </div>
-                  <div className="bg-[#F7F3EC] p-3 rounded-xl border border-[#E6DFD5]">
+                  <div className="bg-[#F8F5F0] p-3 rounded-xl border border-[#E7DDD2]">
                     <div className="text-xs text-[#7A624A] font-medium">Latency</div>
                     <div className="text-sm font-bold text-[#6E5338]">{row.latency}</div>
                   </div>
-                  <div className="bg-[#F7F3EC] p-3 rounded-xl border border-[#E6DFD5]">
+                  <div className="bg-[#F8F5F0] p-3 rounded-xl border border-[#E7DDD2]">
                     <div className="text-xs text-[#7A624A] font-medium">Throughput</div>
                     <div className="text-sm font-bold text-[#5F8D6E]">{row.fps} FPS</div>
                   </div>
