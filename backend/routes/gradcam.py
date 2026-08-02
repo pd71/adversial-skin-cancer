@@ -1,62 +1,104 @@
 import io
 import base64
+import traceback
+import numpy as np
+import cv2
+import tensorflow as tf
 from PIL import Image
 from flask import Blueprint, request, jsonify
-from services.inference import get_models, preprocess_image
-from src.run_gradcam import generate_gradcam, find_last_conv_layer, _create_overlay, _preprocess_for
+from services.inference import get_rasc_net_model, get_models
+from src.run_gradcam import find_last_conv_layer
 
 gradcam_bp = Blueprint('gradcam', __name__)
 
 @gradcam_bp.route('/gradcam', methods=['POST'])
 def gradcam():
     if 'image' not in request.files:
-        return jsonify({"error": "No image part"}), 400
+        return jsonify({"error": "No image file provided in request", "status": "error"}), 400
+    
     file = request.files['image']
+    if file.filename == '':
+        return jsonify({"error": "No selected image file", "status": "error"}), 400
     
     try:
         image_bytes = file.read()
-        mobilenet, resnet, idx2label = get_models()
+        if not image_bytes:
+            return jsonify({"error": "Empty image file received", "status": "error"}), 400
         
-        mob_input, img_tensor = preprocess_image(image_bytes, "mobilenetv2")
-        mob_last_conv = find_last_conv_layer(mobilenet)
-        mob_heatmap, mob_pred, mob_conf = generate_gradcam(
-            mobilenet, "MobileNetV2", img_tensor, 
-            lambda x: _preprocess_for("mobilenetv2", x),
-            mob_last_conv
+        # 1. Load RASC-Net Proposed Model
+        rasc_model = get_rasc_net_model()
+        if rasc_model is None:
+            return jsonify({"error": "RASC-Net Proposed model checkpoint not found", "status": "error"}), 404
+
+        _, _, idx2label = get_models()
+
+        # 2. Preprocess Image (1, 224, 224, 3) in [0, 1]
+        raw_pil = Image.open(io.BytesIO(image_bytes)).convert("RGB").resize((224, 224))
+        img_array = np.array(raw_pil).astype('float32') / 255.0
+        input_tensor = tf.expand_dims(tf.convert_to_tensor(img_array, dtype=tf.float32), axis=0)
+
+        # 3. Dynamically Find Last Conv2D Layer
+        last_conv_layer_name = find_last_conv_layer(rasc_model)
+
+        # 4. Build Grad-CAM Sub-Model
+        target_layer = rasc_model.get_layer(last_conv_layer_name)
+        grad_model = tf.keras.models.Model(
+            inputs=rasc_model.inputs,
+            outputs=[target_layer.output, rasc_model.output]
         )
-        
-        import numpy as np
-        img_array = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB").resize((224, 224))).astype('float32') / 255.0
-        
-        _, overlay_mob = _create_overlay(img_array, mob_heatmap)
-        
-        res_input, _ = preprocess_image(image_bytes, "resnet50")
-        res_last_conv = find_last_conv_layer(resnet)
-        res_heatmap, res_pred, res_conf = generate_gradcam(
-            resnet, "ResNet50", img_tensor,
-            lambda x: _preprocess_for("resnet50", x),
-            res_last_conv
-        )
-        _, overlay_res = _create_overlay(img_array, res_heatmap)
-        
-        def encode_img(img_array_uint8):
-            img = Image.fromarray(img_array_uint8)
-            buffered = io.BytesIO()
-            img.save(buffered, format="JPEG")
-            return base64.b64encode(buffered.getvalue()).decode("utf-8")
-            
+
+        # 5. Compute Gradients via GradientTape
+        with tf.GradientTape() as tape:
+            tape.watch(input_tensor)
+            conv_outputs, predictions = grad_model(input_tensor, training=False)
+            pred_index = tf.argmax(predictions[0])
+            class_channel = predictions[:, pred_index]
+
+        grads = tape.gradient(class_channel, conv_outputs)
+        if grads is None:
+            return jsonify({"error": "Failed to compute gradients for Grad-CAM", "status": "error"}), 500
+
+        pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+        conv_outputs_0 = conv_outputs[0]
+
+        heatmap = tf.reduce_sum(conv_outputs_0 * pooled_grads, axis=-1)
+        heatmap = tf.maximum(heatmap, 0)
+        max_val = tf.reduce_max(heatmap)
+        if float(max_val.numpy()) > 0:
+            heatmap = heatmap / max_val
+
+        heatmap_np = heatmap.numpy()
+
+        # 6. Resize Heatmap & Apply Jet ColorMap Overlay
+        heatmap_resized = cv2.resize(heatmap_np, (224, 224))
+        heatmap_uint8 = np.uint8(255 * np.clip(heatmap_resized, 0.0, 1.0))
+        heatmap_color = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
+
+        img_bgr = cv2.cvtColor(np.uint8(255 * img_array), cv2.COLOR_RGB2BGR)
+        overlay = cv2.addWeighted(img_bgr, 0.6, heatmap_color, 0.4, 0)
+        overlay_rgb = cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB)
+
+        # 7. Base64 Encoding
+        overlay_pil = Image.fromarray(overlay_rgb)
+        buffered = io.BytesIO()
+        overlay_pil.save(buffered, format="PNG")
+        overlay_base64 = "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+        pred_idx_int = int(pred_index.numpy())
+        predicted_code = idx2label.get(pred_idx_int, str(pred_idx_int))
+        confidence = float(predictions[0][pred_index].numpy())
+
         return jsonify({
-            "mobilenet": {
-                "overlay": encode_img(overlay_mob),
-                "predicted_class": idx2label.get(mob_pred, str(mob_pred)),
-                "confidence": float(mob_conf)
-            },
-            "resnet": {
-                "overlay": encode_img(overlay_res),
-                "predicted_class": idx2label.get(res_pred, str(res_pred)),
-                "confidence": float(res_conf)
-            }
+            "status": "success",
+            "gradcam": overlay_base64,
+            "gradcam_image_base64": overlay_base64,
+            "model_name": "RASC-Net Proposed",
+            "last_conv_layer": last_conv_layer_name,
+            "predicted_class": predicted_code,
+            "confidence_pct": round(confidence * 100.0, 2),
         }), 200
-        
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"[GradCAM API Exception] {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e), "status": "error"}), 500

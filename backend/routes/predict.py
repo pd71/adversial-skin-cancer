@@ -14,7 +14,7 @@ def predict():
     if file.filename == '':
         return jsonify({"error": "No selected image file"}), 400
 
-    # Optional Patient Metadata
+    # Parse metadata (simplified HAM10000 hierarchy inputs)
     metadata_raw = request.form.get('metadata')
     metadata = {}
     if metadata_raw:
@@ -23,49 +23,88 @@ def predict():
         except Exception:
             metadata = {}
     else:
-        # Extract direct form fields if available
         metadata = {
-            "age": request.form.get("age", 0),
-            "sex": request.form.get("sex", "Other"),
-            "location": request.form.get("location", "Other"),
-            "duration": request.form.get("duration", "Unknown"),
-            "symptoms": request.form.get("symptoms", "None"),
-            "family_history": request.form.get("family_history", "No"),
-            "previous_cancer": request.form.get("previous_cancer", "No"),
-            "notes": request.form.get("notes", ""),
+            "age_approx": request.form.get("age_approx", 0),
+            "sex": request.form.get("sex", "unknown"),
+            "anatom_site_1": request.form.get("anatom_site_1", ""),
+            "anatom_site_2": request.form.get("anatom_site_2", ""),
+            "anatom_site_3": request.form.get("anatom_site_3", ""),
+            "melanocytic": request.form.get("melanocytic", "false"),
+            "concomitant_biopsy": request.form.get("concomitant_biopsy", "false"),
+            "diagnosis_1": request.form.get("diagnosis_1", ""),
+            "diagnosis_2": request.form.get("diagnosis_2", ""),
+            "diagnosis_3": request.form.get("diagnosis_3", ""),
+            "diagnosis_4": request.form.get("diagnosis_4", ""),
+            "diagnosis_5": request.form.get("diagnosis_5", ""),
         }
 
     try:
         image_bytes = file.read()
         
-        # CNN Inference runs ONLY on image_bytes
-        result = predict_rasc_net(image_bytes)
+        # Dual Prediction: 1. RASC-Net Proposed, 2. Soft Voting Ensemble
+        rasc_result = predict_rasc_net(image_bytes)
+        ensemble_result = predict_ensemble(image_bytes)
 
-        # Rule-Based Clinical Risk Score (Decision Support System)
-        risk_assessment = calculate_clinical_risk_score(metadata, result.get("class", ""))
+        LESION_NAMES = {
+            "akiec": "Actinic keratoses",
+            "bcc": "Basal cell carcinoma",
+            "bkl": "Benign keratosis-like lesions",
+            "df": "Dermatofibroma",
+            "mel": "Melanoma",
+            "nv": "Melanocytic nevi",
+            "vasc": "Vascular lesions",
+        }
 
-        # Extract Top 3 predictions
-        sorted_probs = sorted(result.get("probabilities", {}).items(), key=lambda x: x[1], reverse=True)
-        top_3 = [{"class_code": k, "probability": float(v)} for k, v in sorted_probs[:3]]
+        # Helper to compute top-3 and confidence category
+        def format_model_output(res):
+            sorted_probs = sorted(res.get("probabilities", {}).items(), key=lambda x: x[1], reverse=True)
+            top_3 = [
+                {
+                    "class_code": k,
+                    "lesion_name": LESION_NAMES.get(k, k),
+                    "probability": float(v),
+                    "confidence_pct": round(float(v) * 100, 2),
+                }
+                for k, v in sorted_probs[:3]
+            ]
+            conf_val = float(res.get("confidence", 0.0)) * 100.0
+            
+            if conf_val >= 85.0:
+                conf_level = "HIGH"
+            elif conf_val >= 60.0:
+                conf_level = "MODERATE"
+            else:
+                conf_level = "LOW"
 
-        # Determine Confidence Level Category
-        conf = float(result.get("confidence", 0.0))
-        if conf >= 0.90:
-            conf_level = "HIGH"
-            conf_msg = "Model exhibits high classification certainty."
-        elif conf >= 0.70:
-            conf_level = "MODERATE"
-            conf_msg = "Model exhibits moderate classification certainty."
-        else:
-            conf_level = "LOW"
-            conf_msg = "Manual dermatological examination is strongly recommended due to low AI confidence."
+            return {
+                "class_code": res.get("class", ""),
+                "lesion_name": LESION_NAMES.get(res.get("class", ""), res.get("class", "")),
+                "confidence_pct": round(conf_val, 2),
+                "confidence_level": conf_level,
+                "probabilities": res.get("probabilities", {}),
+                "top_3_predictions": top_3,
+                "model_name": res.get("model_used", ""),
+            }
 
-        result["top_3_predictions"] = top_3
-        result["confidence_level"] = conf_level
-        result["confidence_message"] = conf_msg
+        rasc_data = format_model_output(rasc_result)
+        ensemble_data = format_model_output(ensemble_result)
 
-        return jsonify(result), 200
+        models_agree = (rasc_data["class_code"].lower() == ensemble_data["class_code"].lower())
+
+        # Clinical Risk Engine runs ONLY on RASC-Net Proposed prediction & patient metadata
+        risk_assessment = calculate_clinical_risk_score(metadata, rasc_data["class_code"])
+
+        response_payload = {
+            "status": "success",
+            "models_agree": models_agree,
+            "agreement_message": "Both models agree" if models_agree else "Models disagree",
+            "rasc_net_proposed": rasc_data,
+            "soft_voting_ensemble": ensemble_data,
+            "clinical_assessment": risk_assessment,
+        }
+
+        return jsonify(response_payload), 200
 
     except Exception as e:
+        print(f"[Predict API Error] {e}")
         return jsonify({"error": str(e)}), 500
-

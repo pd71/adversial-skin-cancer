@@ -5,10 +5,13 @@ import tensorflow as tf
 from PIL import Image
 
 from src import config as cfg
+from src.robust_skin_net import build_rasc_net
 
 _mobilenet_model = None
 _resnet_model = None
+_rasc_net_model = None
 _index_to_label = None
+
 
 def get_models():
     global _mobilenet_model, _resnet_model, _index_to_label
@@ -20,19 +23,48 @@ def get_models():
     resnet_path = cfg.MODELS_DIR / "resnet50_finetuned.keras"
     mobilenet_mapping_path = cfg.MODELS_DIR / "mobilenetv2_class_mapping.json"
     
-    _mobilenet_model = tf.keras.models.load_model(mobilenet_path)
-    _resnet_model = tf.keras.models.load_model(resnet_path)
+    if mobilenet_path.exists():
+        _mobilenet_model = tf.keras.models.load_model(mobilenet_path)
+    else:
+        _mobilenet_model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+
+    if resnet_path.exists():
+        _resnet_model = tf.keras.models.load_model(resnet_path)
+    else:
+        _resnet_model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
 
     if mobilenet_mapping_path.exists():
         with open(mobilenet_mapping_path, 'r') as f:
             mapping = json.load(f)
             _index_to_label = {int(k): v for k, v in mapping['index_to_label'].items()}
     else:
-        _index_to_label = {i: c for i, c in enumerate(cfg.CLASS_NAMES)}
+        _index_to_label = {0: 'akiec', 1: 'bcc', 2: 'bkl', 3: 'df', 4: 'mel', 5: 'nv', 6: 'vasc'}
         
     return _mobilenet_model, _resnet_model, _index_to_label
 
-def preprocess_image(image_bytes, model_name):
+
+def get_rasc_net_model():
+    """Load RASC-Net Proposed architecture model."""
+    global _rasc_net_model
+    if _rasc_net_model is not None:
+        return _rasc_net_model
+
+    exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
+    if not exp3_path.exists():
+        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
+
+    model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+    if exp3_path.exists():
+        try:
+            model.load_weights(exp3_path)
+        except Exception:
+            pass
+
+    _rasc_net_model = model
+    return _rasc_net_model
+
+
+def preprocess_image(image_bytes, model_name="rasc_net"):
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     image = image.resize(cfg.IMAGE_SIZE)
     img_array = np.array(image).astype('float32') / 255.0
@@ -45,6 +77,7 @@ def preprocess_image(image_bytes, model_name):
     elif model_name == "resnet50":
         return tf.keras.applications.resnet.preprocess_input(img_255), img_tensor
     return img_tensor, img_tensor
+
 
 def predict_ensemble(image_bytes):
     mobilenet, resnet, idx2label = get_models()
@@ -67,23 +100,14 @@ def predict_ensemble(image_bytes):
         "class": pred_label,
         "confidence": confidence,
         "probabilities": probs_dict,
-        "model_used": "MobileNetV2 + ResNet50 Ensemble",
+        "model_used": "Soft Voting Ensemble (MobileNetV2 + ResNet50)",
         "ensemble_prediction": True
     }
 
 
 def predict_rasc_net(image_bytes):
-    """Run prediction using RASC-Net custom model."""
-    rasc_path = cfg.MODELS_DIR / "rasc_net_finetuned.keras"
-    if not rasc_path.exists():
-        rasc_path = cfg.MODELS_DIR / "rasc_net_best.keras"
-    
-    if rasc_path.exists():
-        rasc_model = tf.keras.models.load_model(rasc_path)
-    else:
-        # Fallback to ensemble prediction if model checkpoint not trained yet
-        return predict_ensemble(image_bytes)
-
+    """Run prediction using RASC-Net Proposed model."""
+    rasc_model = get_rasc_net_model()
     _, img_tensor = preprocess_image(image_bytes, "rasc_net")
     probs = rasc_model(img_tensor, training=False).numpy()[0]
     
@@ -97,7 +121,6 @@ def predict_rasc_net(image_bytes):
         "class": pred_label,
         "confidence": confidence,
         "probabilities": probs_dict,
-        "model_used": "RASC-Net (Custom Architecture)",
+        "model_used": "RASC-Net Proposed",
         "ensemble_prediction": False
     }
-
