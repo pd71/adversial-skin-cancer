@@ -2,6 +2,12 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.append(os.path.dirname(__file__))
+
+from download_models import download_models
+
+# Execute automatic model check/download before backend startup
+download_models()
 
 from flask import Flask
 from flask_cors import CORS
