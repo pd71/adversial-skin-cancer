@@ -1,5 +1,11 @@
+import os
+# Disable GPU initialization before importing TensorFlow (Render CPU-only optimization)
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 import io
+import gc
 import json
+import time
 import logging
 import threading
 import numpy as np
@@ -9,87 +15,80 @@ from PIL import Image
 from src import config as cfg
 from src.robust_skin_net import build_rasc_net
 
+# Configure TensorFlow to use minimal CPU resources (single-threaded execution)
+tf.config.threading.set_inter_op_parallelism_threads(1)
+tf.config.threading.set_intra_op_parallelism_threads(1)
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-_mobilenet_model = None
-_resnet_model = None
-_rasc_net_model = None
-_index_to_label = None
-
 _model_lock = threading.Lock()
+_index_to_label_cache = None
+
+
+def get_current_process_memory_mb():
+    """Helper to return current process RSS memory in MB."""
+    try:
+        import psutil
+        process = psutil.Process(os.getpid())
+        return process.memory_info().rss / (1024 * 1024)
+    except Exception:
+        return 0.0
+
+
+def get_label_mapping():
+    """Load and cache label index to string mapping without loading ML models into RAM."""
+    global _index_to_label_cache
+    if _index_to_label_cache is not None:
+        return _index_to_label_cache
+
+    mobilenet_mapping_path = cfg.MODELS_DIR / "mobilenetv2_class_mapping.json"
+    if mobilenet_mapping_path.exists():
+        try:
+            with open(mobilenet_mapping_path, 'r') as f:
+                mapping = json.load(f)
+                _index_to_label_cache = {int(k): v for k, v in mapping['index_to_label'].items()}
+        except Exception:
+            _index_to_label_cache = {0: 'akiec', 1: 'bcc', 2: 'bkl', 3: 'df', 4: 'mel', 5: 'nv', 6: 'vasc'}
+    else:
+        _index_to_label_cache = {0: 'akiec', 1: 'bcc', 2: 'bkl', 3: 'df', 4: 'mel', 5: 'nv', 6: 'vasc'}
+
+    return _index_to_label_cache
 
 
 def get_models():
-    """Thread-safe singleton loader for MobileNetV2 and ResNet50 ensemble models."""
-    global _mobilenet_model, _resnet_model, _index_to_label
+    """Load MobileNet and ResNet models on demand. Reused if available."""
+    idx2label = get_label_mapping()
+    mobilenet_path = cfg.MODELS_DIR / "mobilenetv2_finetuned.keras"
+    resnet_path = cfg.MODELS_DIR / "resnet50_finetuned.keras"
 
-    if _mobilenet_model is not None and _resnet_model is not None and _index_to_label is not None:
-        logger.info("Models already loaded. Reusing cached instances.")
-        return _mobilenet_model, _resnet_model, _index_to_label
+    if mobilenet_path.exists():
+        mobilenet = tf.keras.models.load_model(mobilenet_path)
+    else:
+        mobilenet = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
 
-    with _model_lock:
-        if _mobilenet_model is not None and _resnet_model is not None and _index_to_label is not None:
-            logger.info("Models already loaded. Reusing cached instances.")
-            return _mobilenet_model, _resnet_model, _index_to_label
+    if resnet_path.exists():
+        resnet = tf.keras.models.load_model(resnet_path)
+    else:
+        resnet = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
 
-        mobilenet_path = cfg.MODELS_DIR / "mobilenetv2_finetuned.keras"
-        resnet_path = cfg.MODELS_DIR / "resnet50_finetuned.keras"
-        mobilenet_mapping_path = cfg.MODELS_DIR / "mobilenetv2_class_mapping.json"
-
-        if _mobilenet_model is None:
-            if mobilenet_path.exists():
-                logger.info("Loading MobileNet model...")
-                _mobilenet_model = tf.keras.models.load_model(mobilenet_path)
-            else:
-                logger.info("MobileNet weights not found; building initialized architecture...")
-                _mobilenet_model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
-
-        if _resnet_model is None:
-            if resnet_path.exists():
-                logger.info("Loading ResNet model...")
-                _resnet_model = tf.keras.models.load_model(resnet_path)
-            else:
-                logger.info("ResNet weights not found; building initialized architecture...")
-                _resnet_model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
-
-        if _index_to_label is None:
-            if mobilenet_mapping_path.exists():
-                with open(mobilenet_mapping_path, 'r') as f:
-                    mapping = json.load(f)
-                    _index_to_label = {int(k): v for k, v in mapping['index_to_label'].items()}
-            else:
-                _index_to_label = {0: 'akiec', 1: 'bcc', 2: 'bkl', 3: 'df', 4: 'mel', 5: 'nv', 6: 'vasc'}
-
-        return _mobilenet_model, _resnet_model, _index_to_label
+    return mobilenet, resnet, idx2label
 
 
 def get_rasc_net_model():
-    """Thread-safe singleton loader for RASC-Net Proposed architecture model."""
-    global _rasc_net_model
-    if _rasc_net_model is not None:
-        logger.info("Models already loaded. Reusing cached instances.")
-        return _rasc_net_model
+    """Load RASC-Net Proposed architecture model on demand."""
+    exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
+    if not exp3_path.exists():
+        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
 
-    with _model_lock:
-        if _rasc_net_model is not None:
-            logger.info("Models already loaded. Reusing cached instances.")
-            return _rasc_net_model
+    model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+    if exp3_path.exists():
+        try:
+            model.load_weights(exp3_path)
+        except Exception as e:
+            logger.warning(f"Failed to load RASC-Net weights: {e}")
 
-        logger.info("Loading RASC-Net model...")
-        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
-        if not exp3_path.exists():
-            exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
-
-        model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
-        if exp3_path.exists():
-            try:
-                model.load_weights(exp3_path)
-            except Exception as e:
-                logger.warning(f"Failed to load RASC-Net weights: {e}")
-
-        _rasc_net_model = model
-        return _rasc_net_model
+    return model
 
 
 def preprocess_image(image_bytes, model_name="rasc_net"):
@@ -107,48 +106,113 @@ def preprocess_image(image_bytes, model_name="rasc_net"):
     return img_tensor, img_tensor
 
 
+def run_model_inference(model_key_name, model_path, img_input, is_weights_only=False):
+    """
+    Reusable helper that:
+    1. Measures model load time
+    2. Measures inference execution time
+    3. Cleans up RAM via del, clear_session, and gc.collect()
+    4. Logs current RSS memory footprint
+    5. Returns probabilities array, load_time, predict_time
+    """
+    t_load_start = time.perf_counter()
+    if is_weights_only:
+        model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+        if model_path.exists():
+            try:
+                model.load_weights(model_path)
+            except Exception as e:
+                logger.warning(f"Failed to load weights for {model_key_name}: {e}")
+    else:
+        if model_path.exists():
+            model = tf.keras.models.load_model(model_path)
+        else:
+            model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+    t_load_end = time.perf_counter()
+    load_time = t_load_end - t_load_start
+
+    t_pred_start = time.perf_counter()
+    probs = model(img_input, training=False).numpy()[0]
+    t_pred_end = time.perf_counter()
+    predict_time = t_pred_end - t_pred_start
+
+    # Immediate Memory & Session Cleanup
+    del model
+    tf.keras.backend.clear_session()
+    gc.collect()
+
+    mem_mb = get_current_process_memory_mb()
+    logger.info(
+        f"\n{model_key_name}:\n"
+        f"  Load: {load_time:.2f} s\n"
+        f"  Predict: {predict_time:.2f} s\n"
+        f"  Post-GC Memory: {mem_mb:.1f} MB"
+    )
+
+    return probs, load_time, predict_time
+
+
 def predict_ensemble(image_bytes):
-    mobilenet, resnet, idx2label = get_models()
-    
-    mob_input, _ = preprocess_image(image_bytes, "mobilenetv2")
-    res_input, _ = preprocess_image(image_bytes, "resnet50")
-    
-    mob_probs = mobilenet(mob_input, training=False).numpy()[0]
-    res_probs = resnet(res_input, training=False).numpy()[0]
-    
-    ensemble_probs = (mob_probs + res_probs) / 2.0
-    
-    pred_idx = int(np.argmax(ensemble_probs))
-    pred_label = idx2label.get(pred_idx, str(pred_idx))
-    confidence = float(ensemble_probs[pred_idx])
-    
-    probs_dict = {idx2label.get(i, str(i)): float(p) for i, p in enumerate(ensemble_probs)}
-    
-    return {
-        "class": pred_label,
-        "confidence": confidence,
-        "probabilities": probs_dict,
-        "model_used": "Soft Voting Ensemble (MobileNetV2 + ResNet50)",
-        "ensemble_prediction": True
-    }
+    with _model_lock:
+        t_req_start = time.perf_counter()
+        idx2label = get_label_mapping()
+
+        mobilenet_path = cfg.MODELS_DIR / "mobilenetv2_finetuned.keras"
+        mob_input, _ = preprocess_image(image_bytes, "mobilenetv2")
+        mob_probs, mob_load, mob_pred = run_model_inference("MobileNet", mobilenet_path, mob_input)
+
+        resnet_path = cfg.MODELS_DIR / "resnet50_finetuned.keras"
+        res_input, _ = preprocess_image(image_bytes, "resnet50")
+        res_probs, res_load, res_pred = run_model_inference("ResNet", resnet_path, res_input)
+
+        # Soft Voting Ensemble (Identical Math: (mob_probs + res_probs) / 2.0)
+        ensemble_probs = (mob_probs + res_probs) / 2.0
+        
+        t_req_end = time.perf_counter()
+        total_time = t_req_end - t_req_start
+
+        logger.info(f"\nTotal Ensemble Request: {total_time:.2f} s")
+
+        pred_idx = int(np.argmax(ensemble_probs))
+        pred_label = idx2label.get(pred_idx, str(pred_idx))
+        confidence = float(ensemble_probs[pred_idx])
+        probs_dict = {idx2label.get(i, str(i)): float(p) for i, p in enumerate(ensemble_probs)}
+        
+        return {
+            "class": pred_label,
+            "confidence": confidence,
+            "probabilities": probs_dict,
+            "model_used": "Soft Voting Ensemble (MobileNetV2 + ResNet50)",
+            "ensemble_prediction": True
+        }
 
 
 def predict_rasc_net(image_bytes):
-    """Run prediction using RASC-Net Proposed model."""
-    rasc_model = get_rasc_net_model()
-    _, img_tensor = preprocess_image(image_bytes, "rasc_net")
-    probs = rasc_model(img_tensor, training=False).numpy()[0]
-    
-    _, _, idx2label = get_models()
-    pred_idx = int(np.argmax(probs))
-    pred_label = idx2label.get(pred_idx, str(pred_idx))
-    confidence = float(probs[pred_idx])
-    probs_dict = {idx2label.get(i, str(i)): float(p) for i, p in enumerate(probs)}
+    with _model_lock:
+        t_req_start = time.perf_counter()
+        idx2label = get_label_mapping()
 
-    return {
-        "class": pred_label,
-        "confidence": confidence,
-        "probabilities": probs_dict,
-        "model_used": "RASC-Net Proposed",
-        "ensemble_prediction": False
-    }
+        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
+        if not exp3_path.exists():
+            exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
+
+        _, img_tensor = preprocess_image(image_bytes, "rasc_net")
+        probs, rasc_load, rasc_pred = run_model_inference("RASC-Net", exp3_path, img_tensor, is_weights_only=True)
+
+        t_req_end = time.perf_counter()
+        total_time = t_req_end - t_req_start
+
+        logger.info(f"\nTotal RASC-Net Request: {total_time:.2f} s")
+
+        pred_idx = int(np.argmax(probs))
+        pred_label = idx2label.get(pred_idx, str(pred_idx))
+        confidence = float(probs[pred_idx])
+        probs_dict = {idx2label.get(i, str(i)): float(p) for i, p in enumerate(probs)}
+
+        return {
+            "class": pred_label,
+            "confidence": confidence,
+            "probabilities": probs_dict,
+            "model_used": "RASC-Net Proposed",
+            "ensemble_prediction": False
+        }
