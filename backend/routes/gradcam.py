@@ -1,5 +1,7 @@
 import io
 import gc
+import os
+import sys
 import base64
 import logging
 import traceback
@@ -26,7 +28,6 @@ def gradcam():
     if file.filename == '':
         return jsonify({"error": "No selected image file", "status": "error"}), 400
     
-    rasc_model = None
     grad_model = None
 
     try:
@@ -34,8 +35,7 @@ def gradcam():
         if not image_bytes:
             return jsonify({"error": "Empty image file received", "status": "error"}), 400
         
-        # 1. Load RASC-Net Proposed Keras Model (Only loaded during Grad-CAM)
-        logger.info("[GradCAM] Loading Keras model...")
+        # 1. Load / Retrieve RASC-Net Proposed Keras Model Singleton
         rasc_model = get_rasc_net_model()
         if rasc_model is None:
             return jsonify({"error": "RASC-Net Proposed model checkpoint not found", "status": "error"}), 404
@@ -56,7 +56,7 @@ def gradcam():
 
         logger.info(f"[GradCAM] Target Layer: {last_conv_layer_name}")
 
-        # 4. Build Grad-CAM Sub-Model
+        # 4. Build Lightweight Grad-CAM Sub-Model
         target_layer = rasc_model.get_layer(last_conv_layer_name)
         grad_model = tf.keras.models.Model(
             inputs=rasc_model.inputs,
@@ -121,11 +121,6 @@ def gradcam():
         return jsonify({"error": str(e), "status": "error"}), 500
 
     finally:
-        # 8. Strict Memory Management & Session Cleanup
-        if rasc_model is not None:
-            del rasc_model
         if grad_model is not None:
             del grad_model
-        tf.keras.backend.clear_session()
         gc.collect()
-        logger.info("[GradCAM] Cleanup completed.")

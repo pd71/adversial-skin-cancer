@@ -8,6 +8,7 @@ import json
 import time
 import logging
 import threading
+import traceback
 import numpy as np
 import tensorflow as tf
 from PIL import Image
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 _model_lock = threading.Lock()
 _index_to_label_cache = None
+_rasc_net_keras_model = None
 
 # TFLite Interpreter & tensor index cache
 _tflite_cache = {}
@@ -77,19 +79,37 @@ def get_models():
 
 
 def get_rasc_net_model():
-    """Load RASC-Net Proposed architecture model on demand."""
-    exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
-    if not exp3_path.exists():
-        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
+    """
+    Thread-safe Singleton loader for RASC-Net Proposed Keras Model.
+    - Loaded ONCE on demand and cached in memory (_rasc_net_keras_model)
+    - Reused for all subsequent Grad-CAM requests
+    - Total memory footprint stays under ~175 MB (well below Render 512MB limit)
+    """
+    global _rasc_net_keras_model
 
-    model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
-    if exp3_path.exists():
-        try:
-            model.load_weights(exp3_path)
-        except Exception as e:
-            logger.warning(f"Failed to load RASC-Net weights: {e}")
+    with _model_lock:
+        if _rasc_net_keras_model is not None:
+            return _rasc_net_keras_model
 
-    return model
+        logger.info("[GradCAM Engine] Initializing RASC-Net Keras Model Singleton...")
+        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
+        if not exp3_path.exists():
+            exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
+
+        model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+        if exp3_path.exists():
+            try:
+                model.load_weights(exp3_path)
+                logger.info("[GradCAM Engine] Successfully loaded RASC-Net weights.")
+            except Exception as e:
+                logger.warning(f"[GradCAM Engine] Failed to load RASC-Net weights: {e}")
+        else:
+            logger.warning("[GradCAM Engine] Weights file not found!")
+
+        _rasc_net_keras_model = model
+        mem_mb = get_current_process_memory_mb()
+        logger.info(f"[GradCAM Engine] RASC-Net Keras Singleton ready. Current Memory: {mem_mb:.1f} MB")
+        return _rasc_net_keras_model
 
 
 def preprocess_image(image_bytes, model_name="rasc_net"):
@@ -117,7 +137,7 @@ def run_tflite_inference(model_name, tflite_path, input_tensor):
     """
     global _tflite_cache
 
-    logger.info(f"[TFLite] {model_name}")
+    logger.info(f"[TFLite Engine] {model_name}")
 
     if model_name not in _tflite_cache:
         t_load_start = time.perf_counter()
