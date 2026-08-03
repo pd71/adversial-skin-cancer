@@ -81,60 +81,63 @@ def get_models():
 def get_rasc_net_model():
     """
     Thread-safe Singleton loader for RASC-Net Proposed Keras Model.
-    Instrumented with line-by-line RSS memory measurements & timestamps.
+    Instrumented with PID, Thread ID, Memory RSS, and high-precision execution timestamps.
     """
     global _rasc_net_keras_model
 
+    pid = os.getpid()
+    tid = threading.get_ident()
     t0 = time.perf_counter()
     m0 = get_current_process_memory_mb()
-    logger.info(f"[MEM DIAGNOSTIC] 1. Entering get_rasc_net_model() | RSS: {m0:.2f} MB | Time: {t0:.4f}s")
+
+    logger.info(f"[TRACE PID:{pid} TID:{tid}] 1. Entering get_rasc_net_model() | RSS: {m0:.2f} MB | Time: {t0:.4f}s")
 
     with _model_lock:
         t1 = time.perf_counter()
         m1 = get_current_process_memory_mb()
-        logger.info(f"[MEM DIAGNOSTIC] 2. Acquired _model_lock | RSS: {m1:.2f} MB | Delta: +{m1-m0:.2f} MB")
+        logger.info(f"[TRACE PID:{pid} TID:{tid}] 2. Acquired _model_lock | RSS: {m1:.2f} MB | Delta: +{m1-m0:.2f} MB | Elapsed: {t1-t0:.4f}s")
 
         if _rasc_net_keras_model is not None:
-            logger.info(f"[MEM DIAGNOSTIC] Returning existing singleton | RSS: {m1:.2f} MB")
+            logger.info(f"[TRACE PID:{pid} TID:{tid}] Returning existing singleton | RSS: {m1:.2f} MB")
             return _rasc_net_keras_model
 
         exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
         if not exp3_path.exists():
             exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
 
-        logger.info(f"[MEM DIAGNOSTIC] 3. Target weights path: {exp3_path} (Exists: {exp3_path.exists()}) | RSS: {m1:.2f} MB")
+        logger.info(f"[TRACE PID:{pid} TID:{tid}] 3. Target weights path: {exp3_path} (Exists: {exp3_path.exists()}) | RSS: {m1:.2f} MB")
 
         tb_before = time.perf_counter()
         mb_before = get_current_process_memory_mb()
-        logger.info(f"[MEM DIAGNOSTIC] 4. BEFORE build_rasc_net() | RSS: {mb_before:.2f} MB")
+        logger.info(f"[TRACE PID:{pid} TID:{tid}] 4. BEFORE build_rasc_net() | RSS: {mb_before:.2f} MB")
 
         model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
 
         tb_after = time.perf_counter()
         mb_after = get_current_process_memory_mb()
-        logger.info(f"[MEM DIAGNOSTIC] 5. AFTER build_rasc_net() | RSS: {mb_after:.2f} MB | Delta: +{mb_after-mb_before:.2f} MB | Time: {tb_after-tb_before:.4f}s")
+        logger.info(f"[TRACE PID:{pid} TID:{tid}] 5. AFTER build_rasc_net() | RSS: {mb_after:.2f} MB | Delta: +{mb_after-mb_before:.2f} MB | Time: {tb_after-tb_before:.4f}s")
 
         if exp3_path.exists():
             tl_before = time.perf_counter()
             ml_before = get_current_process_memory_mb()
-            logger.info(f"[MEM DIAGNOSTIC] 6. BEFORE model.load_weights() | RSS: {ml_before:.2f} MB")
+            logger.info(f"[TRACE PID:{pid} TID:{tid}] 6. BEFORE model.load_weights() | RSS: {ml_before:.2f} MB")
 
             try:
                 model.load_weights(exp3_path)
                 tl_after = time.perf_counter()
                 ml_after = get_current_process_memory_mb()
-                logger.info(f"[MEM DIAGNOSTIC] 7. AFTER model.load_weights() | RSS: {ml_after:.2f} MB | Delta: +{ml_after-ml_before:.2f} MB | Time: {tl_after-tl_before:.4f}s")
+                logger.info(f"[TRACE PID:{pid} TID:{tid}] 7. AFTER model.load_weights() | RSS: {ml_after:.2f} MB | Delta: +{ml_after-ml_before:.2f} MB | Time: {tl_after-tl_before:.4f}s")
             except Exception as e:
                 ml_err = get_current_process_memory_mb()
-                logger.error(f"[MEM DIAGNOSTIC ERROR] model.load_weights() failed: {e} | RSS: {ml_err:.2f} MB\n{traceback.format_exc()}")
+                logger.error(f"[TRACE PID:{pid} TID:{tid} ERROR] model.load_weights() failed: {e} | RSS: {ml_err:.2f} MB\n{traceback.format_exc()}")
                 raise e
         else:
-            logger.warning("[MEM DIAGNOSTIC] Weights file not found!")
+            logger.warning(f"[TRACE PID:{pid} TID:{tid}] Weights file not found!")
 
         _rasc_net_keras_model = model
         m_final = get_current_process_memory_mb()
         t_final = time.perf_counter()
-        logger.info(f"[MEM DIAGNOSTIC] 8. BEFORE returning singleton | Total RSS: {m_final:.2f} MB | Net Change: +{m_final-m0:.2f} MB | Total Time: {t_final-t0:.4f}s")
+        logger.info(f"[TRACE PID:{pid} TID:{tid}] 8. BEFORE returning singleton | Total RSS: {m_final:.2f} MB | Net Change: +{m_final-m0:.2f} MB | Total Time: {t_final-t0:.4f}s")
         return _rasc_net_keras_model
 
 

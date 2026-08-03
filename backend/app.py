@@ -1,8 +1,40 @@
 import sys
 import os
+import signal
+import threading
+import logging
+import faulthandler
+
+# Enable Python C-level fault handler for segfaults/aborts
+faulthandler.enable()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 sys.path.append(os.path.dirname(__file__))
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("app_startup")
+
+def handle_signal(sig, frame):
+    try:
+        sig_name = signal.Signals(sig).name
+    except Exception:
+        sig_name = str(sig)
+    
+    logger.critical(
+        f"[SIGNAL INTERCEPTOR] Process PID: {os.getpid()} | Thread: {threading.get_ident()} | "
+        f"Received Signal {sig} ({sig_name})!"
+    )
+    faulthandler.dump_traceback()
+
+# Register signal handlers for graceful fault tracing
+for sig_name in ("SIGTERM", "SIGINT", "SIGABRT"):
+    if hasattr(signal, sig_name):
+        try:
+            sig = getattr(signal, sig_name)
+            signal.signal(sig, handle_signal)
+            logger.info(f"[SIGNAL INTERCEPTOR] Registered signal handler for {sig_name}")
+        except Exception as e:
+            logger.warning(f"[SIGNAL INTERCEPTOR] Failed to register {sig_name}: {e}")
 
 from download_models import download_models
 
