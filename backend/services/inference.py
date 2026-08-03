@@ -1,5 +1,7 @@
 import io
 import json
+import logging
+import threading
 import numpy as np
 import tensorflow as tf
 from PIL import Image
@@ -7,61 +9,87 @@ from PIL import Image
 from src import config as cfg
 from src.robust_skin_net import build_rasc_net
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 _mobilenet_model = None
 _resnet_model = None
 _rasc_net_model = None
 _index_to_label = None
 
+_model_lock = threading.Lock()
+
 
 def get_models():
+    """Thread-safe singleton loader for MobileNetV2 and ResNet50 ensemble models."""
     global _mobilenet_model, _resnet_model, _index_to_label
-    
-    if _mobilenet_model is not None:
+
+    if _mobilenet_model is not None and _resnet_model is not None and _index_to_label is not None:
+        logger.info("Models already loaded. Reusing cached instances.")
         return _mobilenet_model, _resnet_model, _index_to_label
 
-    mobilenet_path = cfg.MODELS_DIR / "mobilenetv2_finetuned.keras"
-    resnet_path = cfg.MODELS_DIR / "resnet50_finetuned.keras"
-    mobilenet_mapping_path = cfg.MODELS_DIR / "mobilenetv2_class_mapping.json"
-    
-    if mobilenet_path.exists():
-        _mobilenet_model = tf.keras.models.load_model(mobilenet_path)
-    else:
-        _mobilenet_model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+    with _model_lock:
+        if _mobilenet_model is not None and _resnet_model is not None and _index_to_label is not None:
+            logger.info("Models already loaded. Reusing cached instances.")
+            return _mobilenet_model, _resnet_model, _index_to_label
 
-    if resnet_path.exists():
-        _resnet_model = tf.keras.models.load_model(resnet_path)
-    else:
-        _resnet_model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+        mobilenet_path = cfg.MODELS_DIR / "mobilenetv2_finetuned.keras"
+        resnet_path = cfg.MODELS_DIR / "resnet50_finetuned.keras"
+        mobilenet_mapping_path = cfg.MODELS_DIR / "mobilenetv2_class_mapping.json"
 
-    if mobilenet_mapping_path.exists():
-        with open(mobilenet_mapping_path, 'r') as f:
-            mapping = json.load(f)
-            _index_to_label = {int(k): v for k, v in mapping['index_to_label'].items()}
-    else:
-        _index_to_label = {0: 'akiec', 1: 'bcc', 2: 'bkl', 3: 'df', 4: 'mel', 5: 'nv', 6: 'vasc'}
-        
-    return _mobilenet_model, _resnet_model, _index_to_label
+        if _mobilenet_model is None:
+            if mobilenet_path.exists():
+                logger.info("Loading MobileNet model...")
+                _mobilenet_model = tf.keras.models.load_model(mobilenet_path)
+            else:
+                logger.info("MobileNet weights not found; building initialized architecture...")
+                _mobilenet_model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+
+        if _resnet_model is None:
+            if resnet_path.exists():
+                logger.info("Loading ResNet model...")
+                _resnet_model = tf.keras.models.load_model(resnet_path)
+            else:
+                logger.info("ResNet weights not found; building initialized architecture...")
+                _resnet_model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+
+        if _index_to_label is None:
+            if mobilenet_mapping_path.exists():
+                with open(mobilenet_mapping_path, 'r') as f:
+                    mapping = json.load(f)
+                    _index_to_label = {int(k): v for k, v in mapping['index_to_label'].items()}
+            else:
+                _index_to_label = {0: 'akiec', 1: 'bcc', 2: 'bkl', 3: 'df', 4: 'mel', 5: 'nv', 6: 'vasc'}
+
+        return _mobilenet_model, _resnet_model, _index_to_label
 
 
 def get_rasc_net_model():
-    """Load RASC-Net Proposed architecture model."""
+    """Thread-safe singleton loader for RASC-Net Proposed architecture model."""
     global _rasc_net_model
     if _rasc_net_model is not None:
+        logger.info("Models already loaded. Reusing cached instances.")
         return _rasc_net_model
 
-    exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
-    if not exp3_path.exists():
-        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
+    with _model_lock:
+        if _rasc_net_model is not None:
+            logger.info("Models already loaded. Reusing cached instances.")
+            return _rasc_net_model
 
-    model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
-    if exp3_path.exists():
-        try:
-            model.load_weights(exp3_path)
-        except Exception:
-            pass
+        logger.info("Loading RASC-Net model...")
+        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
+        if not exp3_path.exists():
+            exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
 
-    _rasc_net_model = model
-    return _rasc_net_model
+        model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+        if exp3_path.exists():
+            try:
+                model.load_weights(exp3_path)
+            except Exception as e:
+                logger.warning(f"Failed to load RASC-Net weights: {e}")
+
+        _rasc_net_model = model
+        return _rasc_net_model
 
 
 def preprocess_image(image_bytes, model_name="rasc_net"):

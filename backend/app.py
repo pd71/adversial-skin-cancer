@@ -9,6 +9,11 @@ from download_models import download_models
 # Execute automatic model check/download before backend startup
 download_models()
 
+# Pre-warm model singletons at application startup
+from services.inference import get_models, get_rasc_net_model
+get_models()
+get_rasc_net_model()
+
 from flask import Flask
 from flask_cors import CORS
 
