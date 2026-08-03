@@ -5,6 +5,7 @@ import requests
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODELS = {
+    # Original TensorFlow Keras Models (Fallback)
     "models/mobilenetv2_finetuned.keras":
         "https://github.com/srushti-projects/skin-cancer-adversarial-defense/releases/download/v1.0/mobilenetv2_finetuned.keras",
 
@@ -12,7 +13,17 @@ MODELS = {
         "https://github.com/srushti-projects/skin-cancer-adversarial-defense/releases/download/v1.0/resnet50_finetuned.keras",
 
     "outputs/experiments/exp3_proposed_rasc_net/best_model.keras":
-        "https://github.com/srushti-projects/skin-cancer-adversarial-defense/releases/download/v1.0/best_model.keras"
+        "https://github.com/srushti-projects/skin-cancer-adversarial-defense/releases/download/v1.0/best_model.keras",
+
+    # TensorFlow Lite Models (Primary Inference Engine)
+    "models/tflite/mobilenetv2.tflite":
+        "https://github.com/srushti-projects/skin-cancer-adversarial-defense/releases/download/v1.0/mobilenetv2.tflite",
+
+    "models/tflite/resnet50.tflite":
+        "https://github.com/srushti-projects/skin-cancer-adversarial-defense/releases/download/v1.0/resnet50.tflite",
+
+    "models/tflite/rascnet.tflite":
+        "https://github.com/srushti-projects/skin-cancer-adversarial-defense/releases/download/v1.0/rascnet.tflite"
 }
 
 
@@ -34,7 +45,7 @@ def download_file(url, relative_path):
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
 
-        print(f"Successfully downloaded model: {relative_path}")
+        print(f"Downloaded successfully: {relative_path}")
     except Exception as e:
         print(f"Error downloading model {relative_path}: {e}")
         if os.path.exists(full_path):
@@ -45,6 +56,10 @@ def download_file(url, relative_path):
 
 
 def download_models():
+    # Ensure target directories exist
+    os.makedirs(os.path.join(BASE_DIR, "models", "tflite"), exist_ok=True)
+    os.makedirs(os.path.join(BASE_DIR, "outputs", "experiments", "exp3_proposed_rasc_net"), exist_ok=True)
+
     for relative_path, url in MODELS.items():
         full_path = os.path.join(BASE_DIR, relative_path)
         if os.path.exists(full_path):
@@ -52,6 +67,16 @@ def download_models():
             continue
 
         download_file(url, relative_path)
+
+    # Check and log TFLite status at startup (ASCII safe)
+    mobilenet_tflite = os.path.exists(os.path.join(BASE_DIR, "models", "tflite", "mobilenetv2.tflite"))
+    resnet_tflite = os.path.exists(os.path.join(BASE_DIR, "models", "tflite", "resnet50.tflite"))
+    rascnet_tflite = os.path.exists(os.path.join(BASE_DIR, "models", "tflite", "rascnet.tflite"))
+
+    print("\nFound TFLite models:")
+    print(f"  [{'OK' if mobilenet_tflite else 'MISSING'}] MobileNet")
+    print(f"  [{'OK' if resnet_tflite else 'MISSING'}] ResNet50")
+    print(f"  [{'OK' if rascnet_tflite else 'MISSING'}] RASC-Net\n")
 
 
 if __name__ == "__main__":

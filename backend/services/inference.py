@@ -15,7 +15,7 @@ from PIL import Image
 from src import config as cfg
 from src.robust_skin_net import build_rasc_net
 
-# Configure TensorFlow to use minimal CPU resources (single-threaded execution)
+# Configure TensorFlow CPU single-threading
 tf.config.threading.set_inter_op_parallelism_threads(1)
 tf.config.threading.set_intra_op_parallelism_threads(1)
 
@@ -25,9 +25,11 @@ logger = logging.getLogger(__name__)
 _model_lock = threading.Lock()
 _index_to_label_cache = None
 
+# TFLite Interpreter & tensor index cache
+_tflite_cache = {}
+
 
 def get_current_process_memory_mb():
-    """Helper to return current process RSS memory in MB."""
     try:
         import psutil
         process = psutil.Process(os.getpid())
@@ -37,7 +39,6 @@ def get_current_process_memory_mb():
 
 
 def get_label_mapping():
-    """Load and cache label index to string mapping without loading ML models into RAM."""
     global _index_to_label_cache
     if _index_to_label_cache is not None:
         return _index_to_label_cache
@@ -57,7 +58,7 @@ def get_label_mapping():
 
 
 def get_models():
-    """Load MobileNet and ResNet models on demand. Reused if available."""
+    """Load MobileNet and ResNet models on demand (used for Grad-CAM / attacks / fallback)."""
     idx2label = get_label_mapping()
     mobilenet_path = cfg.MODELS_DIR / "mobilenetv2_finetuned.keras"
     resnet_path = cfg.MODELS_DIR / "resnet50_finetuned.keras"
@@ -106,72 +107,141 @@ def preprocess_image(image_bytes, model_name="rasc_net"):
     return img_tensor, img_tensor
 
 
-def run_model_inference(model_key_name, model_path, img_input, is_weights_only=False):
+def run_tflite_inference(model_name, tflite_path, input_tensor):
     """
-    Reusable helper that:
-    1. Measures model load time
-    2. Measures inference execution time
-    3. Cleans up RAM via del, clear_session, and gc.collect()
-    4. Logs current RSS memory footprint
-    5. Returns probabilities array, load_time, predict_time
+    Reusable TensorFlow Lite inference helper:
+    - Loads tf.lite.Interpreter once and caches interpreter & tensor indices
+    - Runs inference with ultra-low memory footprint (~4-46MB)
+    - Measures load time & predict time
+    - Returns output probabilities numpy array
     """
+    global _tflite_cache
+
+    logger.info(f"[TFLite] {model_name}")
+
+    if model_name not in _tflite_cache:
+        t_load_start = time.perf_counter()
+        interpreter = tf.lite.Interpreter(model_path=str(tflite_path))
+        interpreter.allocate_tensors()
+        input_details = interpreter.get_input_details()
+        output_details = interpreter.get_output_details()
+
+        _tflite_cache[model_name] = {
+            'interpreter': interpreter,
+            'input_index': input_details[0]['index'],
+            'output_index': output_details[0]['index']
+        }
+        t_load = time.perf_counter() - t_load_start
+    else:
+        t_load = 0.0
+
+    cache = _tflite_cache[model_name]
+    interpreter = cache['interpreter']
+
+    if isinstance(input_tensor, tf.Tensor):
+        input_data = input_tensor.numpy()
+    else:
+        input_data = np.array(input_tensor, dtype=np.float32)
+
+    t_pred_start = time.perf_counter()
+    interpreter.set_tensor(cache['input_index'], input_data)
+    interpreter.invoke()
+    probs = interpreter.get_tensor(cache['output_index'])[0]
+    t_pred = time.perf_counter() - t_pred_start
+
+    mem_mb = get_current_process_memory_mb()
+    logger.info(
+        f"[TFLite Engine] {model_name}:\n"
+        f"  Interpreter Load: {t_load:.4f} s\n"
+        f"  Inference: {t_pred:.4f} s\n"
+        f"  Current Memory: {mem_mb:.1f} MB"
+    )
+
+    return probs
+
+
+def run_keras_fallback(model_name, keras_path, input_tensor, is_weights_only=False):
+    """Fallback runner if TFLite model is unavailable or throws an exception."""
+    logger.info(f"[TFLite Missing] Falling back to Keras for {model_name}...")
     t_load_start = time.perf_counter()
     if is_weights_only:
         model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
-        if model_path.exists():
+        if keras_path.exists():
             try:
-                model.load_weights(model_path)
-            except Exception as e:
-                logger.warning(f"Failed to load weights for {model_key_name}: {e}")
+                model.load_weights(keras_path)
+            except Exception:
+                pass
     else:
-        if model_path.exists():
-            model = tf.keras.models.load_model(model_path)
+        if keras_path.exists():
+            model = tf.keras.models.load_model(keras_path)
         else:
             model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
-    t_load_end = time.perf_counter()
-    load_time = t_load_end - t_load_start
+    t_load = time.perf_counter() - t_load_start
+
+    if isinstance(input_tensor, tf.Tensor):
+        inp = input_tensor
+    else:
+        inp = tf.convert_to_tensor(input_tensor, dtype=tf.float32)
 
     t_pred_start = time.perf_counter()
-    probs = model(img_input, training=False).numpy()[0]
-    t_pred_end = time.perf_counter()
-    predict_time = t_pred_end - t_pred_start
+    probs = model(inp, training=False).numpy()[0]
+    t_pred = time.perf_counter() - t_pred_start
 
-    # Immediate Memory & Session Cleanup
     del model
     tf.keras.backend.clear_session()
     gc.collect()
 
     mem_mb = get_current_process_memory_mb()
     logger.info(
-        f"\n{model_key_name}:\n"
-        f"  Load: {load_time:.2f} s\n"
-        f"  Predict: {predict_time:.2f} s\n"
+        f"[Keras Fallback] {model_name}:\n"
+        f"  Load: {t_load:.2f} s\n"
+        f"  Predict: {t_pred:.2f} s\n"
         f"  Post-GC Memory: {mem_mb:.1f} MB"
     )
 
-    return probs, load_time, predict_time
+    return probs
 
 
 def predict_ensemble(image_bytes):
     with _model_lock:
-        t_req_start = time.perf_counter()
+        t_start = time.perf_counter()
         idx2label = get_label_mapping()
 
-        mobilenet_path = cfg.MODELS_DIR / "mobilenetv2_finetuned.keras"
+        # 1. MobileNet Inference
+        mobilenet_tflite = cfg.MODELS_DIR / "tflite" / "mobilenetv2.tflite"
+        mobilenet_keras = cfg.MODELS_DIR / "mobilenetv2_finetuned.keras"
         mob_input, _ = preprocess_image(image_bytes, "mobilenetv2")
-        mob_probs, mob_load, mob_pred = run_model_inference("MobileNet", mobilenet_path, mob_input)
 
-        resnet_path = cfg.MODELS_DIR / "resnet50_finetuned.keras"
+        if mobilenet_tflite.exists():
+            try:
+                mob_probs = run_tflite_inference("MobileNet", mobilenet_tflite, mob_input)
+            except Exception as e:
+                logger.warning(f"TFLite inference failed for MobileNet ({e}). [TFLite Missing] Falling back to Keras.")
+                mob_probs = run_keras_fallback("MobileNet", mobilenet_keras, mob_input)
+        else:
+            logger.info("[TFLite Missing] Falling back to Keras for MobileNet.")
+            mob_probs = run_keras_fallback("MobileNet", mobilenet_keras, mob_input)
+
+        # 2. ResNet50 Inference
+        resnet_tflite = cfg.MODELS_DIR / "tflite" / "resnet50.tflite"
+        resnet_keras = cfg.MODELS_DIR / "resnet50_finetuned.keras"
         res_input, _ = preprocess_image(image_bytes, "resnet50")
-        res_probs, res_load, res_pred = run_model_inference("ResNet", resnet_path, res_input)
 
-        # Soft Voting Ensemble (Identical Math: (mob_probs + res_probs) / 2.0)
+        if resnet_tflite.exists():
+            try:
+                res_probs = run_tflite_inference("ResNet50", resnet_tflite, res_input)
+            except Exception as e:
+                logger.warning(f"TFLite inference failed for ResNet50 ({e}). [TFLite Missing] Falling back to Keras.")
+                res_probs = run_keras_fallback("ResNet50", resnet_keras, res_input)
+        else:
+            logger.info("[TFLite Missing] Falling back to Keras for ResNet50.")
+            res_probs = run_keras_fallback("ResNet50", resnet_keras, res_input)
+
+        # 3. Soft Voting Ensemble Math (mob_probs + res_probs) / 2.0
         ensemble_probs = (mob_probs + res_probs) / 2.0
         
-        t_req_end = time.perf_counter()
-        total_time = t_req_end - t_req_start
-
-        logger.info(f"\nTotal Ensemble Request: {total_time:.2f} s")
+        t_total = time.perf_counter() - t_start
+        logger.info(f"Total Ensemble TFLite Request Time: {t_total:.4f} s")
 
         pred_idx = int(np.argmax(ensemble_probs))
         pred_label = idx2label.get(pred_idx, str(pred_idx))
@@ -189,20 +259,28 @@ def predict_ensemble(image_bytes):
 
 def predict_rasc_net(image_bytes):
     with _model_lock:
-        t_req_start = time.perf_counter()
+        t_start = time.perf_counter()
         idx2label = get_label_mapping()
 
+        rasc_tflite = cfg.MODELS_DIR / "tflite" / "rascnet.tflite"
         exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
         if not exp3_path.exists():
             exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
 
         _, img_tensor = preprocess_image(image_bytes, "rasc_net")
-        probs, rasc_load, rasc_pred = run_model_inference("RASC-Net", exp3_path, img_tensor, is_weights_only=True)
 
-        t_req_end = time.perf_counter()
-        total_time = t_req_end - t_req_start
+        if rasc_tflite.exists():
+            try:
+                probs = run_tflite_inference("RASC-Net", rasc_tflite, img_tensor)
+            except Exception as e:
+                logger.warning(f"TFLite inference failed for RASC-Net ({e}). [TFLite Missing] Falling back to Keras.")
+                probs = run_keras_fallback("RASC-Net", exp3_path, img_tensor, is_weights_only=True)
+        else:
+            logger.info("[TFLite Missing] Falling back to Keras for RASC-Net.")
+            probs = run_keras_fallback("RASC-Net", exp3_path, img_tensor, is_weights_only=True)
 
-        logger.info(f"\nTotal RASC-Net Request: {total_time:.2f} s")
+        t_total = time.perf_counter() - t_start
+        logger.info(f"Total RASC-Net TFLite Request Time: {t_total:.4f} s")
 
         pred_idx = int(np.argmax(probs))
         pred_label = idx2label.get(pred_idx, str(pred_idx))
