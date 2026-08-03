@@ -1,13 +1,19 @@
 import io
+import gc
 import base64
+import logging
 import traceback
 import numpy as np
 import cv2
 import tensorflow as tf
 from PIL import Image
 from flask import Blueprint, request, jsonify
-from services.inference import get_rasc_net_model, get_models
+
+from services.inference import get_rasc_net_model, get_label_mapping
 from src.run_gradcam import find_last_conv_layer
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 gradcam_bp = Blueprint('gradcam', __name__)
 
@@ -20,25 +26,35 @@ def gradcam():
     if file.filename == '':
         return jsonify({"error": "No selected image file", "status": "error"}), 400
     
+    rasc_model = None
+    grad_model = None
+
     try:
         image_bytes = file.read()
         if not image_bytes:
             return jsonify({"error": "Empty image file received", "status": "error"}), 400
         
-        # 1. Load RASC-Net Proposed Model
+        # 1. Load RASC-Net Proposed Keras Model (Only loaded during Grad-CAM)
+        logger.info("[GradCAM] Loading Keras model...")
         rasc_model = get_rasc_net_model()
         if rasc_model is None:
             return jsonify({"error": "RASC-Net Proposed model checkpoint not found", "status": "error"}), 404
 
-        _, _, idx2label = get_models()
+        idx2label = get_label_mapping()
 
         # 2. Preprocess Image (1, 224, 224, 3) in [0, 1]
         raw_pil = Image.open(io.BytesIO(image_bytes)).convert("RGB").resize((224, 224))
         img_array = np.array(raw_pil).astype('float32') / 255.0
         input_tensor = tf.expand_dims(tf.convert_to_tensor(img_array, dtype=tf.float32), axis=0)
 
-        # 3. Dynamically Find Last Conv2D Layer
-        last_conv_layer_name = find_last_conv_layer(rasc_model)
+        # 3. Dynamically Find & Verify Last Conv2D Layer
+        try:
+            last_conv_layer_name = find_last_conv_layer(rasc_model)
+        except Exception as e:
+            logger.warning(f"[GradCAM] Layer auto-detect warning: {e}. Fallback to conv2d_20.")
+            last_conv_layer_name = "conv2d_20"
+
+        logger.info(f"[GradCAM] Target Layer: {last_conv_layer_name}")
 
         # 4. Build Grad-CAM Sub-Model
         target_layer = rasc_model.get_layer(last_conv_layer_name)
@@ -88,6 +104,8 @@ def gradcam():
         predicted_code = idx2label.get(pred_idx_int, str(pred_idx_int))
         confidence = float(predictions[0][pred_index].numpy())
 
+        logger.info("[GradCAM] Heatmap generated successfully.")
+
         return jsonify({
             "status": "success",
             "gradcam": overlay_base64,
@@ -99,6 +117,15 @@ def gradcam():
         }), 200
 
     except Exception as e:
-        print(f"[GradCAM API Exception] {e}")
-        traceback.print_exc()
+        logger.error(f"[GradCAM API Exception] {e}", exc_info=True)
         return jsonify({"error": str(e), "status": "error"}), 500
+
+    finally:
+        # 8. Strict Memory Management & Session Cleanup
+        if rasc_model is not None:
+            del rasc_model
+        if grad_model is not None:
+            del grad_model
+        tf.keras.backend.clear_session()
+        gc.collect()
+        logger.info("[GradCAM] Cleanup completed.")
