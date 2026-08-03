@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  Stethoscope, Eye, Zap, BarChart2, ChevronRight, RefreshCw, ShieldCheck
+  Stethoscope, Zap, BarChart2, ChevronRight, ShieldCheck
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -30,16 +30,6 @@ const Dashboard = () => {
       gradient: 'from-[#A67C52] to-[#8B6B4A]',
     },
     {
-      id: 'gradcam',
-      path: '/gradcam',
-      title: 'Grad-CAM Explainability',
-      category: 'Visual Explainability',
-      description: 'Gradient-weighted class activation mapping targeting RASC-Net conv2d_20 layer for transparent spatial heatmap overlays.',
-      icon: Eye,
-      badge: 'Spatial Heatmaps',
-      gradient: 'from-[#C8A97E] to-[#A67C52]',
-    },
-    {
       id: 'metrics',
       path: '/metrics',
       title: 'Scientific Metrics',
@@ -58,77 +48,79 @@ const Dashboard = () => {
       <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-[#E7DDD2]/40 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
       <div className="absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-[#C8A97E]/25 rounded-full blur-3xl pointer-events-none animate-float" />
 
-      <div className="max-w-[1200px] mx-auto px-6 py-10 space-y-10 relative z-10">
+      <div className="max-w-[1200px] mx-auto px-6 pt-10 space-y-10 relative z-10">
         
-        {/* Dashboard Header */}
-        <div className="flex flex-col sm:flex-row items-center justify-between border-b border-[#E7DDD2] pb-6 gap-4">
-          <div>
-            <span className="text-xs font-bold text-[#8B6B4A] uppercase tracking-widest bg-[#FFFDF9] px-3.5 py-1 rounded-full border border-[#E7DDD2]">
-              Clinical Intelligence Dashboard
-            </span>
-            <h2 className="text-3xl font-extrabold text-[#3B2F2F] mt-2">
-              Select AI Intelligence Module
-            </h2>
-            <p className="text-sm text-[#7A624A] mt-1">
-              Choose a module below to launch the clinical decision support workflow.
+        {/* Header Hero Section */}
+        <div className="bg-[#FFFDF9] rounded-3xl p-8 md:p-10 shadow-md border border-[#E7DDD2] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
+              <ShieldCheck className="w-4 h-4 text-[#8B6B4A]" />
+              <span>IPD Capstone • Production Medical AI Suite</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[#3B2F2F] tracking-tight">
+              RASC-Net Clinical Decision Support Platform
+            </h1>
+            <p className="text-sm md:text-base text-[#7A624A] leading-relaxed">
+              Residual Attention Skin Cancer Network with adversarial robustness benchmarking, clinical decision engine, and scientific evaluations.
             </p>
           </div>
 
           <button
-            onClick={() => navigate('/')}
-            className="px-4 py-2 bg-[#FFFDF9] hover:bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2] rounded-xl text-xs font-bold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
+            onClick={() => navigate('/predict')}
+            className="px-6 py-3.5 bg-gradient-to-r from-[#8B6B4A] to-[#6E5338] hover:from-[#7A5B3D] hover:to-[#5E442B] text-white font-bold rounded-2xl shadow-lg shadow-[#8B6B4A]/25 flex items-center space-x-2 transition-all group shrink-0"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Return to Landing</span>
+            <span>Launch Clinical Predictor</span>
+            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
 
-        {/* 2 × 2 Responsive Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {modules.map((mod, idx) => {
-            const Icon = mod.icon;
-            return (
-              <motion.div
-                key={mod.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: idx * 0.1 }}
-                whileHover={{ y: -6 }}
-                onClick={() => navigate(mod.path)}
-                className="bg-[#FFFDF9] rounded-2xl p-7 border border-[#E7DDD2] shadow-md hover:shadow-xl transition-all flex flex-col justify-between cursor-pointer space-y-6 group relative overflow-hidden h-full"
-              >
-                {/* Top Gradient Stripe */}
-                <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${mod.gradient}`} />
+        {/* Modules Grid */}
+        <div>
+          <h2 className="text-2xl font-bold text-[#3B2F2F] mb-6 tracking-tight">
+            System Modules & Clinical Workflows
+          </h2>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="w-13 h-13 rounded-2xl bg-[#F4EFE6] border border-[#E7DDD2] flex items-center justify-center text-[#8B6B4A] group-hover:bg-[#8B6B4A] group-hover:text-white transition-all shadow-xs">
-                      <Icon className="w-6 h-6" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {modules.map((mod) => {
+              const Icon = mod.icon;
+              return (
+                <motion.div
+                  key={mod.id}
+                  whileHover={{ y: -4 }}
+                  onClick={() => navigate(mod.path)}
+                  className="bg-[#FFFDF9] rounded-3xl p-7 shadow-sm hover:shadow-md border border-[#E7DDD2] flex flex-col justify-between cursor-pointer group transition-all"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className={`p-3.5 rounded-2xl text-white bg-gradient-to-r ${mod.gradient} shadow-md`}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
+                        {mod.badge}
+                      </span>
                     </div>
-                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
-                      {mod.badge}
-                    </span>
+
+                    <div>
+                      <div className="text-xs font-semibold text-[#8B6B4A] uppercase tracking-wider mb-1">
+                        {mod.category}
+                      </div>
+                      <h3 className="text-xl font-bold text-[#3B2F2F] group-hover:text-[#8B6B4A] transition-colors">
+                        {mod.title}
+                      </h3>
+                      <p className="text-xs text-[#7A624A] mt-2 leading-relaxed">
+                        {mod.description}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <div className="text-xs font-semibold text-[#8B6B4A] uppercase tracking-wider">{mod.category}</div>
-                    <h3 className="text-xl font-bold text-[#3B2F2F] group-hover:text-[#8B6B4A] transition-colors">
-                      {mod.title}
-                    </h3>
+                  <div className="pt-6 border-t border-[#F4EFE6] mt-6 flex items-center justify-between text-xs font-bold text-[#8B6B4A]">
+                    <span>Open Module</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
-
-                  <p className="text-sm text-[#7A624A] leading-relaxed">
-                    {mod.description}
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t border-[#F4EFE6] flex items-center justify-between text-sm font-bold text-[#8B6B4A] group-hover:text-[#6E5338]">
-                  <span>Open Module</span>
-                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
 
       </div>

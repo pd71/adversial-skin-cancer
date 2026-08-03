@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, Stethoscope, BarChart2, Zap, Eye } from 'lucide-react';
+import { ShieldCheck, Stethoscope, BarChart2, Zap } from 'lucide-react';
 import DisclaimerBar from './DisclaimerBar';
 
 const Navigation = () => {
@@ -10,7 +10,6 @@ const Navigation = () => {
 
   const navItems = [
     { path: '/predict', label: 'Clinical Prediction', icon: Stethoscope },
-    { path: '/gradcam', label: 'Grad-CAM', icon: Eye },
     { path: '/attacks', label: 'Adversarial Benchmarks', icon: Zap },
     { path: '/metrics', label: 'Scientific Metrics', icon: BarChart2 },
   ];
@@ -40,8 +39,8 @@ const Navigation = () => {
             </div>
           </Link>
 
-          {/* Navigation Links */}
-          <nav className="flex items-center space-x-1 sm:space-x-2">
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center space-x-2 bg-[#F8F5F0] p-1.5 rounded-2xl border border-[#E7DDD2]">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
@@ -49,10 +48,10 @@ const Navigation = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                     active
-                      ? 'bg-[#8B6B4A] text-white shadow-md shadow-[#8B6B4A]/20'
-                      : 'text-[#5C4A38] hover:text-[#3B2F2F] hover:bg-[#F4EFE6]/80'
+                      ? 'bg-gradient-to-r from-[#8B6B4A] to-[#6E5338] text-white shadow-md shadow-[#8B6B4A]/20 font-bold'
+                      : 'text-[#7A624A] hover:text-[#3B2F2F] hover:bg-[#FFFDF9]'
                   }`}
                 >
                   <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-[#8B6B4A]'}`} />

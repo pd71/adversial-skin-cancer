@@ -5,7 +5,6 @@ import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Predict from './pages/Predict';
 import Attacks from './pages/Attacks';
-import GradCam from './pages/GradCam';
 import Metrics from './pages/Metrics';
 
 const AppLayout = () => {
@@ -21,7 +20,6 @@ const AppLayout = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/predict" element={<Predict />} />
         <Route path="/attacks" element={<Attacks />} />
-        <Route path="/gradcam" element={<GradCam />} />
         <Route path="/metrics" element={<Metrics />} />
       </Routes>
     </>
