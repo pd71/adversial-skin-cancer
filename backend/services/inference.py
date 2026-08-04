@@ -77,6 +77,39 @@ def get_models():
     return mobilenet, resnet, idx2label
 
 
+_rasc_net_keras_model = None
+
+def get_rasc_net_model():
+    """
+    Thread-safe Singleton loader for RASC-Net Proposed Keras Model.
+    Used exclusively for Grad-CAM execution. Loads weights ONCE into memory.
+    """
+    global _rasc_net_keras_model
+
+    with _model_lock:
+        if _rasc_net_keras_model is not None:
+            return _rasc_net_keras_model
+
+        logger.info("[GradCAM Engine] Initializing RASC-Net Keras Model Singleton...")
+        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
+        if not exp3_path.exists():
+            exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
+
+        model = build_rasc_net(input_shape=(224, 224, 3), num_classes=7)
+        if exp3_path.exists():
+            try:
+                model.load_weights(exp3_path)
+                logger.info(f"[GradCAM Engine] Successfully loaded RASC-Net weights from {exp3_path}")
+            except Exception as e:
+                logger.error(f"[GradCAM Engine] Failed to load weights: {e}")
+        else:
+            logger.warning("[GradCAM Engine] RASC-Net weights file not found!")
+
+        _rasc_net_keras_model = model
+        return _rasc_net_keras_model
+
+
+
 def preprocess_image(image_bytes, model_name="rasc_net"):
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     image = image.resize(cfg.IMAGE_SIZE)

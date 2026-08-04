@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { 
   CheckCircle2, AlertTriangle, X, HeartPulse, 
-  Stethoscope, FileText, Printer, Zap, Sparkles
+  Stethoscope, FileText, Printer, Zap, Sparkles, Eye, RefreshCw
 } from 'lucide-react';
 import ImageUploadCard from '../components/ImageUploadCard';
 import SearchableCombobox from '../components/SearchableCombobox';
@@ -36,6 +36,12 @@ const Predict = () => {
   const [error, setError] = useState(null);
   const [predictionData, setPredictionData] = useState(null);
 
+  // State for Grad-CAM
+  const [gradcamLoading, setGradcamLoading] = useState(false);
+  const [gradcamError, setGradcamError] = useState(null);
+  const [gradcamData, setGradcamData] = useState(null);
+  const [activeGradcamTab, setActiveGradcamTab] = useState('overlay'); // 'overlay' | 'heatmap'
+
   // Modal State
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
@@ -49,6 +55,8 @@ const Predict = () => {
     setImagePreview(URL.createObjectURL(file));
     setError(null);
     setPredictionData(null);
+    setGradcamData(null);
+    setGradcamError(null);
   };
 
   const handleImageRemoved = () => {
@@ -56,6 +64,37 @@ const Predict = () => {
     setImagePreview(null);
     setPredictionData(null);
     setError(null);
+    setGradcamData(null);
+    setGradcamError(null);
+  };
+
+  const fetchGradcam = async (fileToUse) => {
+    const file = fileToUse || selectedFile;
+    if (!file) return;
+
+    setGradcamLoading(true);
+    setGradcamError(null);
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await axios.post(`${API_BASE}/api/gradcam`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data && res.data.success) {
+        setGradcamData(res.data);
+      } else {
+        setGradcamError(res.data?.error || 'Failed to generate Grad-CAM visualization.');
+      }
+    } catch (err) {
+      console.error('Grad-CAM API error:', err);
+      const serverErr = err.response?.data?.error || err.response?.data?.message;
+      setGradcamError(serverErr ? `Grad-CAM failed: ${serverErr}` : `Grad-CAM request failed: ${err.message}`);
+    } finally {
+      setGradcamLoading(false);
+    }
   };
 
   const handlePredict = async () => {
@@ -67,6 +106,8 @@ const Predict = () => {
     setLoading(true);
     setError(null);
     setPredictionData(null);
+    setGradcamData(null);
+    setGradcamError(null);
 
     const formData = new FormData();
     formData.append('image', selectedFile);
@@ -398,6 +439,86 @@ const Predict = () => {
 
             </div>
 
+            {/* Grad-CAM Card Section */}
+            <div className="bg-[#FFFDF9] rounded-2xl p-6 shadow-md border border-[#E7DDD2] space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#F4EFE6] pb-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-[#3B2F2F] flex items-center space-x-2">
+                    <Eye className="w-5 h-5 text-[#8B6B4A]" />
+                    <span>Grad-CAM Visual Explainability</span>
+                  </h3>
+                  <p className="text-xs text-[#7A624A] mt-0.5">
+                    Spatial class activation map targeting RASC-Net Proposed architecture
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => fetchGradcam(selectedFile)}
+                  disabled={gradcamLoading}
+                  className="px-4 py-2.5 bg-gradient-to-r from-[#8B6B4A] to-[#6E5338] hover:from-[#7A5B3D] hover:to-[#5E442B] text-white rounded-xl text-xs font-bold shadow-md shadow-[#8B6B4A]/20 flex items-center space-x-2 transition-all disabled:opacity-60"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${gradcamLoading ? 'animate-spin' : ''}`} />
+                  <span>{gradcamLoading ? 'Generating Heatmap...' : gradcamData ? 'Regenerate Grad-CAM' : 'Generate Grad-CAM'}</span>
+                </button>
+              </div>
+
+              {gradcamLoading && (
+                <div className="h-56 bg-[#F8F5F0] rounded-2xl border border-[#E7DDD2] flex items-center justify-center text-xs text-[#7A624A] space-x-3">
+                  <div className="w-6 h-6 border-2 border-[#8B6B4A] border-t-transparent rounded-full animate-spin"></div>
+                  <span>Computing RASC-Net Gradient Activation Map...</span>
+                </div>
+              )}
+
+              {gradcamError && (
+                <div className="p-4 bg-[#FBF0EF] border border-[#F2D6D3] rounded-xl text-[#C0564B] text-xs flex items-center justify-between">
+                  <span>{gradcamError}</span>
+                  <button onClick={() => fetchGradcam(selectedFile)} className="px-3 py-1 bg-[#C0564B] text-white rounded-lg text-xs font-bold shadow-xs">Retry</button>
+                </div>
+              )}
+
+              {gradcamData && !gradcamLoading && (
+                <div className="bg-[#F8F5F0] p-6 rounded-2xl border border-[#E7DDD2] space-y-4">
+                  
+                  {/* Tab Switcher */}
+                  <div className="flex items-center justify-center space-x-2 border-b border-[#E7DDD2] pb-3">
+                    <button
+                      onClick={() => setActiveGradcamTab('overlay')}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        activeGradcamTab === 'overlay'
+                          ? 'bg-[#8B6B4A] text-white shadow-xs'
+                          : 'bg-[#FFFDF9] text-[#7A624A] hover:text-[#3B2F2F]'
+                      }`}
+                    >
+                      Heatmap Overlay
+                    </button>
+                    <button
+                      onClick={() => setActiveGradcamTab('heatmap')}
+                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        activeGradcamTab === 'heatmap'
+                          ? 'bg-[#8B6B4A] text-white shadow-xs'
+                          : 'bg-[#FFFDF9] text-[#7A624A] hover:text-[#3B2F2F]'
+                      }`}
+                    >
+                      Raw Spatial Activation
+                    </button>
+                  </div>
+
+                  {/* Image Display */}
+                  <div className="text-center space-y-3">
+                    <img 
+                      src={activeGradcamTab === 'overlay' ? gradcamData.overlay_image : gradcamData.gradcam_image} 
+                      alt="RASC-Net Grad-CAM Visualization" 
+                      className="max-w-[420px] w-full mx-auto rounded-2xl border border-[#E7DDD2] shadow-md object-cover hover:scale-[1.02] transition-transform duration-300" 
+                    />
+                    <p className="text-xs text-[#7A624A] max-w-lg mx-auto leading-relaxed">
+                      Highlighted red and warm spatial activations pinpoint exact anatomical structures driving RASC-Net Proposed's diagnostic decision ({gradcamData.predicted_class?.toUpperCase()} - {gradcamData.confidence}% confidence).
+                    </p>
+                  </div>
+
+                </div>
+              )}
+            </div>
+
             {/* Clinical Assessment Card */}
             {riskData && (
               <div className="bg-[#FFFDF9] rounded-2xl p-6 shadow-md border border-[#E7DDD2] space-y-5">
@@ -495,10 +616,23 @@ const Predict = () => {
               </div>
             </div>
 
+            {/* Grad-CAM Section in Report */}
+            {gradcamData && gradcamData.overlay_image && (
+              <div className="space-y-2 text-xs border-t pt-3">
+                <h4 className="font-bold border-b pb-1">3. Grad-CAM Spatial Visual Explainability Heatmap</h4>
+                <div className="flex items-center space-x-4 bg-slate-50 p-3 rounded-xl border">
+                  <img src={gradcamData.overlay_image} alt="Grad-CAM Overlay" className="w-28 h-28 object-cover rounded-lg border" />
+                  <p className="text-slate-600 leading-relaxed">
+                    Red and warm spatial activations highlight exact anatomical structures driving RASC-Net Proposed diagnosis.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Risk Assessment */}
             {riskData && (
               <div className="space-y-2 text-xs bg-emerald-50/50 p-4 rounded-xl border border-emerald-200">
-                <h4 className="font-bold border-b border-emerald-200 pb-1 text-emerald-900">3. Rule-Based Clinical Risk Assessment</h4>
+                <h4 className="font-bold border-b border-emerald-200 pb-1 text-emerald-900">{gradcamData ? '4.' : '3.'} Rule-Based Clinical Risk Assessment</h4>
                 <div><strong>Risk Level:</strong> <span className="font-extrabold text-emerald-800">{riskData.risk_level} ({riskData.score} PTS)</span></div>
                 <div><strong>Recommendation:</strong> {riskData.recommendation}</div>
               </div>
