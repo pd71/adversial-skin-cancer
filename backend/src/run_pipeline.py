@@ -1,11 +1,10 @@
-"""Pipeline entry point (skeleton).
+"""Pipeline entry point.
 
 This script sets up reproducibility, validates paths, and provides
-placeholders for the next implementation stages:
+stage handlers for:
 1) train models
 2) evaluate models
 3) run attacks/defenses
-4) generate Grad-CAM outputs
 """
 
 import random
@@ -24,7 +23,6 @@ from config import (
     ensure_project_dirs,
 )
 from train_models import train_efficientnetb0, train_mobilenetv2, train_resnet50, train_rasc_net
-
 
 
 def set_global_seed(seed: int = RANDOM_SEED) -> None:
@@ -106,7 +104,6 @@ def main() -> None:
         print(f"Training plot   : {rasc_artifacts['training_plot_path']}")
         print(f"Metrics report  : {rasc_artifacts['report_path']}")
         print(f"Confusion plot  : {rasc_artifacts['confusion_plot_path']}")
-
 
 
 if __name__ == "__main__":

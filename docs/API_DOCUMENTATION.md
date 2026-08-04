@@ -1,6 +1,6 @@
 # 📡 REST API Documentation
 
-The RASC-Net backend API is implemented using Flask and provides endpoints for skin cancer classification, clinical risk evaluation, Grad-CAM heatmap generation, adversarial attack simulation, defense filtering, and scientific benchmark metrics.
+The RASC-Net backend API is implemented using Flask and provides endpoints for skin cancer classification, clinical risk evaluation, adversarial attack simulation, defense filtering, and scientific benchmark metrics.
 
 ---
 
@@ -83,30 +83,7 @@ Classifies a skin lesion image using a specified CNN model and computes patient 
 
 ---
 
-## 3. Explainable AI (Grad-CAM) Heatmap Endpoint
-
-### `POST /api/gradcam`
-Generates a Class Activation Map overlay string (Base64 PNG) highlighting visual evidence regions.
-
-#### Request Headers
-`Content-Type: multipart/form-data`
-
-#### Form Data Fields
-* `image`: File (JPEG/PNG skin image)
-* `target_layer`: String (Optional, e.g., `"conv2d_last"`)
-
-#### Response Example (`200 OK`)
-```json
-{
-  "status": "success",
-  "predicted_class": "mel",
-  "gradcam_image_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACt..."
-}
-```
-
----
-
-## 4. Adversarial Attack Simulation Endpoint
+## 3. Adversarial Attack Simulation Endpoint
 
 ### `POST /api/attack`
 Simulates FGSM, PGD, or CW gradient perturbations on an uploaded image.
@@ -134,7 +111,7 @@ Simulates FGSM, PGD, or CW gradient perturbations on an uploaded image.
 
 ---
 
-## 5. Defense Filtering Pipeline Endpoint
+## 4. Defense Filtering Pipeline Endpoint
 
 ### `POST /api/defense`
 Applies bit-depth reduction, Gaussian blur, and JPEG compression filtering to sanitize an adversarial image.
@@ -158,7 +135,7 @@ Applies bit-depth reduction, Gaussian blur, and JPEG compression filtering to sa
 
 ---
 
-## 6. Scientific Benchmark Metrics Endpoint
+## 5. Scientific Benchmark Metrics Endpoint
 
 ### `GET /api/metrics`
 Returns evaluation benchmarks, confidence intervals, McNemar test results, and plot file URIs across all 6 models.

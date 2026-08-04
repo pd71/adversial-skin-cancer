@@ -47,7 +47,6 @@ from flask_cors import CORS
 from routes.health import health_bp
 from routes.predict import predict_bp
 from routes.attacks import attacks_bp
-from routes.gradcam import gradcam_bp
 from routes.metrics import metrics_bp
 
 def create_app():
@@ -58,7 +57,6 @@ def create_app():
     app.register_blueprint(health_bp, url_prefix='/api')
     app.register_blueprint(predict_bp, url_prefix='/api')
     app.register_blueprint(attacks_bp, url_prefix='/api')
-    app.register_blueprint(gradcam_bp, url_prefix='/api')
     app.register_blueprint(metrics_bp, url_prefix='/api')
 
     return app

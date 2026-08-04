@@ -4,7 +4,7 @@
 [![TensorFlow Version](https://img.shields.io/badge/TensorFlow-2.15%2B-orange.svg)](https://www.tensorflow.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-An end-to-end deep learning framework and Clinical Decision Support System (CDSS) for skin lesion classification under adversarial threats. Incorporates **RASC-Net** (Residual Attention Skin Cancer Network), **Curriculum Adversarial Training**, multi-stage image defense, Explainable AI (Grad-CAM), and hospital-grade PDF clinical reporting.
+An end-to-end deep learning framework and Clinical Decision Support System (CDSS) for skin lesion classification under adversarial threats. Incorporates **RASC-Net** (Residual Attention Skin Cancer Network), **Curriculum Adversarial Training**, multi-stage image defense, and hospital-grade PDF clinical reporting.
 
 ---
 
@@ -45,7 +45,6 @@ IPD_Final_Project/
 │   │   └── plots/                 # High-resolution publication plots
 │   ├── routes/
 │   │   ├── predict.py             # Predict & Clinical Risk API
-│   │   ├── gradcam.py             # Grad-CAM Heatmap Generation API
 │   │   ├── attack.py              # Adversarial Attack Simulation API
 │   │   ├── defense.py             # Image Defense Filtering API
 │   │   └── metrics.py             # Scientific Evaluation Dashboard API
@@ -158,7 +157,7 @@ npm run dev
 ## 🏆 Key Findings & Results
 
 | Model Architecture | Clean Acc (95% CI) | FGSM Acc | PGD Acc | CW Acc | Recovery Rate | ECE | Params | Latency | Size |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **MobileNetV2** | 69.06% [66.26%, 71.96%] | 32.00% | 0.00% | 10.00% | 21.59% | 0.0242 | 2.42M | 223ms | 22.7MB |
 | **ResNet50** | 75.85% [73.25%, 78.44%] | 12.00% | 0.00% | 10.00% | 75.18% | 0.0263 | 23.85M | 404ms | 203.9MB |
 | **Soft Voting Ensemble** | 69.26% [66.46%, 72.16%] | 28.00% | 0.00% | 10.00% | 77.55% | 0.1315 | 26.27M | 32.6ms | 226.6MB |
