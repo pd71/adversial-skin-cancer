@@ -83,8 +83,19 @@ const Predict = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      if (res.data && res.data.success) {
-        setGradcamData(res.data);
+      const resImg = res.data?.overlay_image || res.data?.gradcam_image || res.data?.gradcam || res.data?.gradcam_image_base64;
+      if (res.data && (res.data.success || res.data.status === 'success' || resImg)) {
+        const overlay = res.data.overlay_image || res.data.gradcam || res.data.gradcam_image_base64 || res.data.gradcam_image;
+        const heatmap = res.data.gradcam_image || res.data.gradcam || res.data.gradcam_image_base64 || res.data.overlay_image;
+        const predClass = res.data.predicted_class || 'nv';
+        const conf = res.data.confidence || res.data.confidence_pct || 0;
+
+        setGradcamData({
+          overlay_image: overlay,
+          gradcam_image: heatmap,
+          predicted_class: predClass,
+          confidence: conf
+        });
       } else {
         setGradcamError(res.data?.error || 'Failed to generate Grad-CAM visualization.');
       }
