@@ -5,8 +5,6 @@ import {
   Stethoscope, FileText, Printer, Zap, Sparkles, Eye, RefreshCw
 } from 'lucide-react';
 import ImageUploadCard from '../components/ImageUploadCard';
-import SearchableCombobox from '../components/SearchableCombobox';
-import medicalOptions from '../data/medicalOptions';
 
 const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const API_BASE = rawApiBase.replace(/\/+$/, '');
@@ -234,31 +232,40 @@ const Predict = () => {
 
             {/* Anatomical Site 1 */}
             <div className="space-y-1.5">
-              <SearchableCombobox
-                label="Anatomical Region (Site 1)"
+              <label className="font-bold text-[#3B2F2F]">Anatomical Region (Site 1)</label>
+              <input
+                type="text"
+                name="anatom_site_1"
                 value={metadata.anatom_site_1}
-                options={medicalOptions.anatom_site_1}
-                onChange={(val) => setMetadata(prev => ({ ...prev, anatom_site_1: val }))}
+                onChange={handleMetadataChange}
+                placeholder="e.g. torso, head/neck"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
               />
             </div>
 
             {/* Anatomical Site 2 */}
             <div className="space-y-1.5">
-              <SearchableCombobox
-                label="Specific Location (Site 2)"
+              <label className="font-bold text-[#3B2F2F]">Specific Location (Site 2)</label>
+              <input
+                type="text"
+                name="anatom_site_2"
                 value={metadata.anatom_site_2}
-                options={medicalOptions.anatom_site_2}
-                onChange={(val) => setMetadata(prev => ({ ...prev, anatom_site_2: val }))}
+                onChange={handleMetadataChange}
+                placeholder="e.g. cheek, chest"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
               />
             </div>
 
             {/* Anatomical Site 3 */}
             <div className="space-y-1.5">
-              <SearchableCombobox
-                label="Sub-Location / Side (Site 3)"
+              <label className="font-bold text-[#3B2F2F]">Sub-Location / Side (Site 3)</label>
+              <input
+                type="text"
+                name="anatom_site_3"
                 value={metadata.anatom_site_3}
-                options={medicalOptions.anatom_site_3}
-                onChange={(val) => setMetadata(prev => ({ ...prev, anatom_site_3: val }))}
+                onChange={handleMetadataChange}
+                placeholder="e.g. right side, anterior"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
               />
             </div>
 
@@ -292,11 +299,14 @@ const Predict = () => {
 
             {/* Primary Diagnosis */}
             <div className="space-y-1.5 md:col-span-2">
-              <SearchableCombobox
-                label="Primary Clinical Impression (Diagnosis 1)"
+              <label className="font-bold text-[#3B2F2F]">Primary Clinical Impression (Diagnosis 1)</label>
+              <input
+                type="text"
+                name="diagnosis_1"
                 value={metadata.diagnosis_1}
-                options={medicalOptions.diagnosis_1}
-                onChange={(val) => setMetadata(prev => ({ ...prev, diagnosis_1: val }))}
+                onChange={handleMetadataChange}
+                placeholder="e.g. none, melanoma"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
               />
             </div>
 
