@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  ShieldCheck, Stethoscope, Zap, Eye, ArrowRight, Sparkles
+  ShieldCheck, Stethoscope, Zap, ArrowRight, Sparkles, BarChart2
 } from 'lucide-react';
 
 const Landing = () => {
@@ -15,7 +15,7 @@ const Landing = () => {
       <div className="absolute top-10 left-1/4 w-[550px] h-[550px] bg-[#E7DDD2]/50 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
       <div className="absolute bottom-10 right-1/4 w-[450px] h-[450px] bg-[#C8A97E]/30 rounded-full blur-3xl pointer-events-none animate-float" />
 
-      {/* Full Screen Hero Section (No 4 Cards Here) */}
+      {/* Full Screen Hero Section */}
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -64,11 +64,11 @@ const Landing = () => {
             AI Assisted Skin Cancer Analysis and Adversarial Defense Platform
           </h2>
           <p className="text-sm sm:text-base text-[#7A624A] max-w-xl mx-auto leading-relaxed">
-            Early detection through Artificial Intelligence, Explainable AI (Grad-CAM), and Adversarial Robustness Benchmarking.
+            Early detection through Artificial Intelligence, Clinical Risk Assessment, and Adversarial Robustness Benchmarking.
           </p>
         </motion.div>
 
-        {/* Three Feature Badges */}
+        {/* Feature Badges */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -78,7 +78,7 @@ const Landing = () => {
           {[
             { label: 'Clinical Prediction', icon: Stethoscope },
             { label: 'Adversarial Robustness', icon: Zap },
-            { label: 'Explainable AI', icon: Eye },
+            { label: 'Scientific Metrics', icon: BarChart2 },
           ].map((feat, i) => {
             const Icon = feat.icon;
             return (
