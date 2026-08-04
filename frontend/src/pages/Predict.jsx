@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { 
-  CheckCircle2, AlertTriangle, X, HeartPulse, 
-  Stethoscope, FileText, Printer, Zap, Sparkles, Eye, RefreshCw
+  AlertTriangle, X, HeartPulse, 
+  Stethoscope, FileText, Printer, Sparkles, Eye, RefreshCw
 } from 'lucide-react';
 import ImageUploadCard from '../components/ImageUploadCard';
 
@@ -29,7 +29,7 @@ const Predict = () => {
     diagnosis_5: 'none',
   });
 
-  // State for Dual Predictions
+  // State for Prediction
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [predictionData, setPredictionData] = useState(null);
@@ -132,15 +132,13 @@ const Predict = () => {
 
     } catch (err) {
       const serverErr = err.response?.data?.error || err.response?.data?.message;
-      setError(serverErr ? `Prediction failed: ${serverErr}` : `Prediction failed: ${err.message || 'Error executing dual model prediction'}`);
+      setError(serverErr ? `Prediction failed: ${serverErr}` : `Prediction failed: ${err.message || 'Error executing model prediction'}`);
       setLoading(false);
     }
   };
 
-  const rascData = predictionData?.rasc_net_proposed;
   const ensembleData = predictionData?.soft_voting_ensemble;
   const riskData = predictionData?.clinical_assessment;
-  const modelsAgree = predictionData?.models_agree;
 
   const handlePrintReport = () => {
     window.print();
@@ -160,10 +158,10 @@ const Predict = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-extrabold text-[#3B2F2F] tracking-tight">
-                  Clinical Dual Prediction Engine
+                  Clinical Prediction Engine
                 </h1>
                 <p className="text-xs text-[#7A624A] mt-0.5">
-                  Consensus diagnostic classification combining Proposed RASC-Net with Soft Voting Ensemble
+                  Automated diagnostic classification utilizing Soft Voting Ensemble Architecture
                 </p>
               </div>
             </div>
@@ -316,7 +314,7 @@ const Predict = () => {
         {/* Action Button Section */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-xs text-[#7A624A]">
-            Click below to execute parallel Dual Model Consensus inference & Clinical Risk Evaluation.
+            Click below to execute Soft Voting Ensemble classification & Clinical Risk Evaluation.
           </div>
 
           <button
@@ -331,12 +329,12 @@ const Predict = () => {
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Executing Dual Inference...</span>
+                <span>Executing Ensemble Inference...</span>
               </>
             ) : (
               <>
                 <Stethoscope className="w-5 h-5" />
-                <span>Execute Dual Model Prediction</span>
+                <span>Execute Ensemble Prediction</span>
               </>
             )}
           </button>
@@ -351,113 +349,48 @@ const Predict = () => {
         )}
 
         {/* Results Section */}
-        {predictionData && (
+        {predictionData && ensembleData && (
           <div className="space-y-8 animate-fade-in">
             
-            {/* Dual Consensus Banner */}
-            <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold ${
-              modelsAgree 
-                ? 'bg-[#E8F0E9] text-[#5F8D6E] border-[#C5DDC8]' 
-                : 'bg-[#FDF5E6] text-[#C88A36] border-[#F5E2C4]'
-            }`}>
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{predictionData.agreement_message || (modelsAgree ? "Consensus Reached: Both models agree on diagnosis." : "Divergent Predictions: Models suggest different diagnostic possibilities.")}</span>
-              </div>
-              <span className="uppercase text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-white/70">
-                {modelsAgree ? 'AGREEMENT' : 'DIVERGENCE'}
-              </span>
-            </div>
-
-            {/* Model Comparison Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Proposed RASC-Net Card */}
-              <div className="bg-[#FFFDF9] rounded-2xl p-6 shadow-md border border-[#E7DDD2] space-y-5 flex flex-col justify-between">
+            {/* Soft Voting Ensemble Prediction Card */}
+            <div className="bg-[#FFFDF9] rounded-2xl p-6 md:p-8 shadow-md border border-[#E7DDD2] space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F4EFE6] pb-4 gap-3">
                 <div>
-                  <div className="flex items-center justify-between border-b border-[#F4EFE6] pb-3 mb-4">
-                    <div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#8B6B4A]/10 text-[#8B6B4A] uppercase tracking-wider">
-                        Primary Architecture
-                      </span>
-                      <h3 className="text-lg font-bold text-[#3B2F2F] mt-1">Proposed RASC-Net</h3>
-                    </div>
-                    <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
-                      {rascData.confidence_pct}% ({rascData.confidence_level})
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#8B6B4A]/10 text-[#8B6B4A] uppercase tracking-wider">
+                    Ensemble Classification Architecture
+                  </span>
+                  <h3 className="text-xl font-bold text-[#3B2F2F] mt-1">Soft Voting Ensemble Prediction</h3>
+                </div>
+                <span className="text-sm font-extrabold px-4 py-1.5 rounded-full bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
+                  {ensembleData.confidence_pct}% ({ensembleData.confidence_level})
+                </span>
+              </div>
 
-                  <div className="space-y-3">
-                    <div className="text-2xl font-extrabold text-[#3B2F2F]">
-                      {rascData.lesion_name}
-                      <span className="text-sm font-semibold text-[#7A624A] ml-2">({rascData.class_code?.toUpperCase()})</span>
-                    </div>
+              <div className="space-y-5">
+                <div className="text-3xl font-extrabold text-[#3B2F2F]">
+                  {ensembleData.lesion_name}
+                  <span className="text-base font-semibold text-[#7A624A] ml-3">({ensembleData.class_code?.toUpperCase()})</span>
+                </div>
 
-                    {/* Top 3 Predictions */}
-                    <div className="space-y-2 pt-2">
-                      <div className="text-[11px] font-bold text-[#7A624A] uppercase tracking-wider">Top Probability Candidates</div>
-                      {rascData.top_3_predictions?.map((cand, idx) => (
-                        <div key={idx} className="space-y-1">
-                          <div className="flex justify-between text-xs font-semibold text-[#3B2F2F]">
-                            <span>{cand.lesion_name} ({cand.class_code?.toUpperCase()})</span>
-                            <span className="text-[#8B6B4A]">{cand.confidence_pct}%</span>
-                          </div>
-                          <div className="w-full bg-[#F4EFE6] h-2 rounded-full overflow-hidden">
-                            <div 
-                              className="bg-[#8B6B4A] h-full rounded-full transition-all duration-700 animate-progress-bar" 
-                              style={{ width: `${cand.confidence_pct}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
+                {/* Top Probability Candidates */}
+                <div className="space-y-3 pt-2">
+                  <div className="text-xs font-bold text-[#7A624A] uppercase tracking-wider">Top Probability Candidates</div>
+                  {ensembleData.top_3_predictions?.map((cand, idx) => (
+                    <div key={idx} className="space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold text-[#3B2F2F]">
+                        <span>{cand.lesion_name} ({cand.class_code?.toUpperCase()})</span>
+                        <span className="text-[#8B6B4A] font-bold">{cand.confidence_pct}%</span>
+                      </div>
+                      <div className="w-full bg-[#F4EFE6] h-2.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-[#8B6B4A] to-[#6E5338] h-full rounded-full transition-all duration-700 animate-progress-bar" 
+                          style={{ width: `${cand.confidence_pct}%` }}
+                        ></div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
               </div>
-
-              {/* Soft Voting Ensemble Card */}
-              <div className="bg-[#FFFDF9] rounded-2xl p-6 shadow-md border border-[#E7DDD2] space-y-5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between border-b border-[#F4EFE6] pb-3 mb-4">
-                    <div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#C8A97E]/20 text-[#6E5338] uppercase tracking-wider">
-                        Baseline Ensemble
-                      </span>
-                      <h3 className="text-lg font-bold text-[#3B2F2F] mt-1">Soft Voting Ensemble</h3>
-                    </div>
-                    <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
-                      {ensembleData.confidence_pct}% ({ensembleData.confidence_level})
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="text-2xl font-extrabold text-[#3B2F2F]">
-                      {ensembleData.lesion_name}
-                      <span className="text-sm font-semibold text-[#7A624A] ml-2">({ensembleData.class_code?.toUpperCase()})</span>
-                    </div>
-
-                    {/* Top 3 Predictions */}
-                    <div className="space-y-2 pt-2">
-                      <div className="text-[11px] font-bold text-[#7A624A] uppercase tracking-wider">Top Probability Candidates</div>
-                      {ensembleData.top_3_predictions?.map((cand, idx) => (
-                        <div key={idx} className="space-y-1">
-                          <div className="flex justify-between text-xs font-semibold text-[#3B2F2F]">
-                            <span>{cand.lesion_name} ({cand.class_code?.toUpperCase()})</span>
-                            <span className="text-[#8B6B4A]">{cand.confidence_pct}%</span>
-                          </div>
-                          <div className="w-full bg-[#F4EFE6] h-2 rounded-full overflow-hidden">
-                            <div 
-                              className="bg-[#C8A97E] h-full rounded-full transition-all duration-700 animate-progress-bar" 
-                              style={{ width: `${cand.confidence_pct}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
             </div>
 
             {/* Grad-CAM Card Section */}
@@ -486,7 +419,7 @@ const Predict = () => {
               {gradcamLoading && (
                 <div className="h-56 bg-[#F8F5F0] rounded-2xl border border-[#E7DDD2] flex items-center justify-center text-xs text-[#7A624A] space-x-3">
                   <div className="w-6 h-6 border-2 border-[#8B6B4A] border-t-transparent rounded-full animate-spin"></div>
-                  <span>Computing RASC-Net Gradient Activation Map...</span>
+                  <span>Computing Gradient Activation Map...</span>
                 </div>
               )}
 
@@ -528,11 +461,11 @@ const Predict = () => {
                   <div className="text-center space-y-3">
                     <img 
                       src={activeGradcamTab === 'overlay' ? gradcamData.overlay_image : gradcamData.gradcam_image} 
-                      alt="RASC-Net Grad-CAM Visualization" 
+                      alt="Grad-CAM Visualization" 
                       className="max-w-[420px] w-full mx-auto rounded-2xl border border-[#E7DDD2] shadow-md object-cover hover:scale-[1.02] transition-transform duration-300" 
                     />
                     <p className="text-xs text-[#7A624A] max-w-lg mx-auto leading-relaxed">
-                      Highlighted red and warm spatial activations pinpoint exact anatomical structures driving RASC-Net Proposed's diagnostic decision ({gradcamData.predicted_class?.toUpperCase()} - {gradcamData.confidence}% confidence).
+                      Highlighted red and warm spatial activations pinpoint exact anatomical structures driving diagnostic decision ({gradcamData.predicted_class?.toUpperCase()} - {gradcamData.confidence}% confidence).
                     </p>
                   </div>
 
@@ -550,7 +483,7 @@ const Predict = () => {
                       <span>Rule-Based Clinical Risk Assessment</span>
                     </h3>
                     <p className="text-xs text-[#7A624A] mt-0.5">
-                      Integrated Decision Support Engine (RASC-Net Proposed + HAM10000 Metadata)
+                      Integrated Decision Support Engine (Soft Voting Ensemble + HAM10000 Metadata)
                     </p>
                   </div>
 
@@ -592,7 +525,7 @@ const Predict = () => {
       </div>
 
       {/* Hospital Assessment PDF Report Modal */}
-      {isReportModalOpen && rascData && (
+      {isReportModalOpen && ensembleData && (
         <div className="fixed inset-0 bg-[#2A2118]/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white text-slate-900 rounded-2xl max-w-3xl w-full p-8 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
             
@@ -612,7 +545,7 @@ const Predict = () => {
             <div className="text-center border-b-2 border-slate-900 pb-4">
               <h2 className="text-xl font-black text-slate-900 tracking-tight">GENERAL HOSPITAL DERMATOLOGY CENTER</h2>
               <h4 className="text-sm font-bold text-[#8B6B4A]">AI SKIN CANCER CLINICAL ASSESSMENT REPORT</h4>
-              <p className="text-xs text-slate-500 mt-1">Generated via RASC-Net Proposed Architecture</p>
+              <p className="text-xs text-slate-500 mt-1">Generated via Soft Voting Ensemble Architecture</p>
             </div>
 
             {/* Patient Metadata */}
@@ -630,10 +563,10 @@ const Predict = () => {
 
             {/* Prediction */}
             <div className="space-y-2 text-xs bg-slate-50 p-4 rounded-xl border">
-              <h4 className="font-bold border-b pb-1 text-slate-900">2. RASC-Net Proposed Visual Classification</h4>
+              <h4 className="font-bold border-b pb-1 text-slate-900">2. Soft Voting Ensemble Visual Classification</h4>
               <div className="flex justify-between items-center text-sm font-bold">
-                <span>{rascData.lesion_name} ({rascData.class_code?.toUpperCase() || ''})</span>
-                <span className="text-[#8B6B4A]">{rascData.confidence_pct}% ({rascData.confidence_level})</span>
+                <span>{ensembleData.lesion_name} ({ensembleData.class_code?.toUpperCase() || ''})</span>
+                <span className="text-[#8B6B4A]">{ensembleData.confidence_pct}% ({ensembleData.confidence_level})</span>
               </div>
             </div>
 
@@ -644,7 +577,7 @@ const Predict = () => {
                 <div className="flex items-center space-x-4 bg-slate-50 p-3 rounded-xl border">
                   <img src={gradcamData.overlay_image} alt="Grad-CAM Overlay" className="w-28 h-28 object-cover rounded-lg border" />
                   <p className="text-slate-600 leading-relaxed">
-                    Red and warm spatial activations highlight exact anatomical structures driving RASC-Net Proposed diagnosis.
+                    Red and warm spatial activations highlight exact anatomical structures driving diagnosis decision.
                   </p>
                 </div>
               </div>
