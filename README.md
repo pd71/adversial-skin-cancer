@@ -16,7 +16,8 @@ An end-to-end deep learning framework and Clinical Decision Support System (CDSS
 - [Training & Ablation Experiments](#training--ablation-experiments)
 - [Scientific Benchmark & Evaluation](#scientific-benchmark--evaluation)
 - [Launching Web Application](#launching-web-application)
-- [Local PC Hosting via Dev Tunnels (`devtunnel`)](#-local-pc-hosting--deployment-via-dev-tunnels-devtunnel)
+- [Local PC Deployment via Microsoft Dev Tunnels](#-local-pc-deployment-via-microsoft-dev-tunnels)
+- [Environment Configuration](#-environment-configuration)
 - [Key Findings & Results](#key-findings--results)
 - [Citation & Acknowledgments](#citation--acknowledgments)
 
@@ -38,12 +39,9 @@ Skin lesion classification using Deep Convolutional Neural Networks (CNNs) achie
 ```
 IPD_Final_Project/
 ├── backend/
+│   ├── .env.example               # Backend environment variables template
 │   ├── models/                    # Pretrained & fine-tuned model checkpoints (.keras & .tflite)
-│   ├── outputs/
-│   │   ├── experiments/           # Experiment 1, 2, 3 outputs (checkpoints, CSVs, manifests)
-│   │   ├── evaluation/            # Step 7 evaluation JSONs, figures, master table
-│   │   ├── metrics/               # Evaluation JSONs & text reports
-│   │   └── plots/                 # High-resolution publication plots
+│   ├── outputs/                   # Experiment outputs, evaluation JSONs & plots
 │   ├── routes/
 │   │   ├── predict.py             # Predict & Clinical Risk API
 │   │   ├── attack.py              # Adversarial Attack Simulation API
@@ -55,11 +53,10 @@ IPD_Final_Project/
 │       ├── config.py              # Global project hyperparameters & paths
 │       ├── data_loader.py         # HAM10000 dataset loading & preprocessing
 │       ├── robust_skin_net.py     # RASC-Net architecture (Custom Layers)
-│       ├── run_attacks.py         # FGSM, PGD, CW attack implementations
-│       ├── train_models.py        # Model training routines & callbacks
-│       ├── run_ablation_study.py  # Ablation study execution script
 │       └── evaluate_all_models.py # Master 6-model benchmark script
 ├── frontend/                      # React + Vite + Tailwind CSS Web Application
+│   ├── .env.example               # Frontend environment variables template
+│   ├── vite.config.js             # Vite dev server configuration (host & allowedHosts)
 │   ├── src/
 │   │   ├── components/            # UI Components & Hospital Report Modal
 │   │   ├── pages/                 # Predict, Attack, Defense, Metrics pages
@@ -128,7 +125,7 @@ Outputs will be automatically saved under `backend/outputs/experiments/`.
 
 ## 🔬 Scientific Benchmark & Evaluation
 
-To reproduce all benchmarks, 95% bootstrap confidence intervals, McNemar significance tests, and 9 publication-quality figures across all 6 model configurations:
+To reproduce all benchmarks, 95% bootstrap confidence intervals, McNemar significance tests, and publication-quality figures across all model configurations:
 
 ```bash
 python backend/src/evaluate_all_models.py
@@ -155,91 +152,138 @@ npm run dev
 
 ---
 
-## 🌐 Local PC Hosting & Deployment via Dev Tunnels (`devtunnel`)
+## 🌐 Local PC Deployment via Microsoft Dev Tunnels
 
-This section explains how to use your local PC as a live server and securely expose both the Flask Backend (`port 5000`) and Vite Frontend (`port 5173`) over HTTPS using **Microsoft Dev Tunnels (`devtunnel`)**, making your application accessible from any external smartphone, laptop, or remote client without paid cloud servers.
-
-### 📋 Prerequisites
-1. Installed **Dev Tunnels CLI** or VS Code **Dev Tunnels extension**.
-   * Install via winget (Windows): `winget install Microsoft.devtunnel`
-   * Or download standalone executable from [Microsoft Dev Tunnels Docs](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started).
-2. GitHub or Microsoft Account (for one-time authentication).
+This project can run **entirely on your local PC as the server** while remaining accessible globally over the internet via **Microsoft Dev Tunnels (`devtunnel`)**. No cloud providers (Render, Vercel, AWS) are required.
 
 ---
 
-### Step-by-Step Dev Tunnels Deployment
+### Step-by-Step Setup Guide
 
-#### Step 1: Log in to Dev Tunnels CLI
-Open PowerShell or Terminal on your host PC and run:
+#### Step 1: Install Dev Tunnel CLI
+* **Windows (PowerShell)**:
+  ```powershell
+  winget install Microsoft.devtunnel
+  ```
+* **macOS / Linux / Manual**:
+  Download the binary from [Microsoft Dev Tunnels Documentation](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started).
+
+---
+
+#### Step 2: One-Time User Login
+Authenticate with your GitHub or Microsoft account:
 ```powershell
 devtunnel user login
 ```
-*(Follow the interactive prompt to authenticate via GitHub or Microsoft)*
 
 ---
 
-#### Step 2: Host the Backend Tunnel (Port 5000)
-Expose your local Flask backend API to the public over HTTPS:
-```powershell
-devtunnel host -p 5000 --allow-anonymous
-```
-* Output Example:
-  ```text
-  Hosting port 5000 at https://<BACKEND-TUNNEL-ID>.devtunnels.ms:5000/
-  ```
-* Copy your unique **Backend Tunnel URL** (e.g., `https://abc123-5000.inc1.devtunnels.ms`).
-
----
-
-#### Step 3: Configure Frontend API Environment Variable
-In `frontend/.env` (or environment variables), set `VITE_API_BASE_URL` to your live Backend Dev Tunnel URL:
-```env
-VITE_API_BASE_URL=https://<BACKEND-TUNNEL-ID>.devtunnels.ms
-```
-
----
-
-#### Step 4: Start Local Application Services on Host PC
-
-1. **Terminal 1: Start Backend Server**
-   ```powershell
-   python backend/app.py
-   ```
-
-2. **Terminal 2: Start Frontend Dev Server with Host Flag**
-   ```powershell
-   cd frontend
-   npm run dev -- --host 0.0.0.0
-   ```
-
----
-
-#### Step 5: Host the Frontend Tunnel (Port 5173)
-In **Terminal 3**, host your Vite frontend client port:
-```powershell
-devtunnel host -p 5173 --allow-anonymous
-```
-* Output Example:
-  ```text
-  Hosting port 5173 at https://<FRONTEND-TUNNEL-ID>.devtunnels.ms:5173/
-  ```
-* Open `https://<FRONTEND-TUNNEL-ID>.devtunnels.ms` on any remote smartphone, tablet, or browser to interact with your live local PC server!
-
----
-
-#### 💡 Option B: Named Persistent Dev Tunnel Setup (Recommended)
-To prevent tunnel URLs from changing whenever you restart your PC, create a persistent named tunnel:
-
+#### Step 3: Create a Persistent Named Tunnel
+Create a persistent tunnel named `skin-cancer-server` that retains its URLs across system reboots:
 ```powershell
 # 1. Create named tunnel with public anonymous access
 devtunnel create skin-cancer-server --allow-anonymous
 
-# 2. Add backend (5000) and frontend (5173) ports
+# 2. Add backend port (5000)
 devtunnel port create skin-cancer-server -p 5000
-devtunnel port create skin-cancer-server -p 5173
 
-# 3. Host both ports simultaneously
-devtunnel host skin-cancer-server
+# 3. Add frontend port (5173)
+devtunnel port create skin-cancer-server -p 5173
+```
+
+---
+
+#### Step 4: Configure Environment Files
+
+1. **Backend Environment Variable (`backend/.env`)**
+   Create `backend/.env` (based on `backend/.env.example`):
+   ```env
+   PORT=5000
+   ALLOWED_ORIGINS=https://skin-cancer-server-5173.inc1.devtunnels.ms,http://localhost:5173,*
+   ```
+
+2. **Frontend Environment Variable (`frontend/.env`)**
+   Create `frontend/.env` (based on `frontend/.env.example`):
+   ```env
+   VITE_API_BASE_URL=https://skin-cancer-server-5000.inc1.devtunnels.ms
+   ```
+   *(Replace `inc1` with your active Dev Tunnels region cluster prefix shown when hosting)*
+
+---
+
+#### Step 5: Launch Local Application & Dev Tunnel
+
+1. **Terminal 1: Start Backend**
+   ```powershell
+   python backend/app.py
+   ```
+
+2. **Terminal 2: Start Frontend Client**
+   ```powershell
+   cd frontend
+   npm run dev
+   ```
+
+3. **Terminal 3: Start Dev Tunnel Hosting**
+   ```powershell
+   devtunnel host skin-cancer-server
+   ```
+
+---
+
+#### Step 6: Access Application Globally
+* **Frontend Web App URL**: `https://skin-cancer-server-5173.inc1.devtunnels.ms`
+* **Backend API Base URL**: `https://skin-cancer-server-5000.inc1.devtunnels.ms`
+
+Anyone on a mobile phone, tablet, or external computer can open the **Frontend Web App URL** to perform real-time skin cancer classification hosted directly by your PC.
+
+---
+
+### 🔄 How to Restart After PC Reboot
+
+Whenever you restart your PC:
+1. Open PowerShell and start hosting the existing persistent tunnel:
+   ```powershell
+   devtunnel host skin-cancer-server
+   ```
+2. Start local Backend and Frontend services:
+   ```powershell
+   # Terminal 1
+   python backend/app.py
+
+   # Terminal 2
+   cd frontend
+   npm run dev
+   ```
+*(No need to re-create the tunnel or re-install CLI; the persistent URLs remain active!)*
+
+---
+
+### 🛠️ Common Troubleshooting
+
+1. **CORS Error (`Access-Control-Allow-Origin`)**:
+   * Ensure `ALLOWED_ORIGINS` in `backend/.env` includes your exact frontend tunnel URL or `*`.
+
+2. **Vite `Invalid Host Header`**:
+   * `frontend/vite.config.js` is pre-configured with `host: true` and `allowedHosts: 'all'` to accept requests proxied by Dev Tunnels.
+
+3. **Double Slashes in API Requests**:
+   * Frontend pages automatically strip trailing slashes from `VITE_API_BASE_URL`. Ensure your `.env` URL has no trailing space.
+
+---
+
+## 🔑 Environment Configuration
+
+### Backend (`backend/.env.example`)
+```env
+PORT=5000
+ALLOWED_ORIGINS=https://skin-cancer-server-5173.inc1.devtunnels.ms,http://localhost:5173,*
+FLASK_ENV=production
+```
+
+### Frontend (`frontend/.env.example`)
+```env
+VITE_API_BASE_URL=https://skin-cancer-server-5000.inc1.devtunnels.ms
 ```
 
 ---

@@ -49,9 +49,20 @@ from routes.predict import predict_bp
 from routes.attacks import attacks_bp
 from routes.metrics import metrics_bp
 
+
+def get_allowed_origins():
+    origins_env = os.environ.get("ALLOWED_ORIGINS")
+    if not origins_env:
+        return "*"
+    origins = [o.strip() for o in origins_env.split(",") if o.strip()]
+    return origins if origins else "*"
+
+
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    allowed_origins = get_allowed_origins()
+    logger.info(f"[CORS] Configured allowed origins: {allowed_origins}")
+    CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
 
     # Register blueprints
     app.register_blueprint(health_bp, url_prefix='/api')

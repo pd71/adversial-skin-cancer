@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import ImageUploadCard from '../components/ImageUploadCard';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE = rawApiBase.replace(/\/+$/, '');
 
 const Attacks = () => {
   const [selectedFile, setSelectedFile] = useState(null);

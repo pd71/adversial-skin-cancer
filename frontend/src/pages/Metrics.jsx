@@ -4,7 +4,8 @@ import {
   BarChart2, ShieldCheck, Activity, Layers, Award, Cpu
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE = rawApiBase.replace(/\/+$/, '');
 
 const MASTER_BENCHMARK_DATA = [
   {
