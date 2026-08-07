@@ -78,11 +78,24 @@ ADVERSARIAL_CURRICULUM = [
     (1.00, 0.50),   # Final 50% epochs -> 50% Clean / 50% FGSM
 ]
 
+# -----------------------------
+# Test-Time Augmentation (TTA) & Evaluation
+# -----------------------------
+ENABLE_TTA = True
+TTA_STEPS = 4
+
+# -----------------------------
+# Hugging Face Hub Integration
+# -----------------------------
+HF_REPO_ID = "srushti-projects/skin-cancer-adversarial-defense"
+HF_HUB_URL = f"https://huggingface.co/{HF_REPO_ID}/resolve/main"
+
 PGD_EPSILON = 0.01
 PGD_ALPHA = 0.002
 PGD_STEPS = 10
 CW_CONFIDENCE = 0.0
 CW_STEPS = 100
+
 
 
 

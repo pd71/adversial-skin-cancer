@@ -91,11 +91,42 @@ def _split_dataframe(
 
 
 def _augment_image(image: tf.Tensor) -> tf.Tensor:
-    """Apply lightweight augmentations for training data only."""
+    """Apply comprehensive medical dermoscopy augmentations for training.
+    
+    Includes 4-way spatial orientation (horizontal/vertical flips and 90-degree rotations)
+    plus subtle contrast, brightness, and saturation jittering for illumination invariance.
+    """
+    # 1. Spatial Rotations & Flips (Dermoscopy images are orientation-invariant)
     image = tf.image.random_flip_left_right(image)
-    image = tf.image.random_brightness(image, max_delta=0.08)
-    image = tf.image.random_contrast(image, lower=0.9, upper=1.1)
+    image = tf.image.random_flip_up_down(image)
+
+    # Random 90-degree rotations (0, 90, 180, 270 degrees)
+    k_rot = tf.random.uniform([], minval=0, maxval=4, dtype=tf.int32)
+    image = tf.image.rot90(image, k=k_rot)
+
+    # 2. Photometric & Illumination Augmentations
+    image = tf.image.random_brightness(image, max_delta=0.10)
+    image = tf.image.random_contrast(image, lower=0.85, upper=1.15)
+    image = tf.image.random_saturation(image, lower=0.85, upper=1.15)
+
     return tf.clip_by_value(image, 0.0, 1.0)
+
+
+def get_tta_augmented_variants(image: tf.Tensor) -> List[tf.Tensor]:
+    """Generate 4 Test-Time Augmentation (TTA) variants of a single preprocessed image (3D tensor HxWxC).
+    
+    Returns:
+    - Original image
+    - Horizontally flipped image
+    - Vertically flipped image
+    - 180-degree rotated image
+    """
+    img_orig = tf.clip_by_value(image, 0.0, 1.0)
+    img_hflip = tf.image.flip_left_right(img_orig)
+    img_vflip = tf.image.flip_up_down(img_orig)
+    img_rot180 = tf.image.rot90(img_orig, k=2)
+    return [img_orig, img_hflip, img_vflip, img_rot180]
+
 
 
 def load_and_preprocess_image(path: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:

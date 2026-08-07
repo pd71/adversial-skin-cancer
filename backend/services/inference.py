@@ -275,7 +275,33 @@ def predict_ensemble(image_bytes):
         }
 
 
-def predict_rasc_net(image_bytes):
+def run_tta_inference(model_name, tflite_path, keras_path, img_tensor, is_weights_only=False):
+    """Run Test-Time Augmentation (TTA) across 4 spatial orientations for optimal accuracy."""
+    # 4 spatial orientations: original, left-right flip, up-down flip, 180-deg rotation
+    base_img = img_tensor[0]
+    img_orig = base_img
+    img_hflip = tf.image.flip_left_right(base_img)
+    img_vflip = tf.image.flip_up_down(base_img)
+    img_rot180 = tf.image.rot90(base_img, k=2)
+
+    tta_variants = [img_orig, img_hflip, img_vflip, img_rot180]
+    tta_probs = []
+
+    for variant in tta_variants:
+        var_batch = tf.expand_dims(variant, axis=0)
+        if tflite_path and tflite_path.exists():
+            try:
+                p = run_tflite_inference(model_name, tflite_path, var_batch)
+            except Exception:
+                p = run_keras_fallback(model_name, keras_path, var_batch, is_weights_only=is_weights_only)
+        else:
+            p = run_keras_fallback(model_name, keras_path, var_batch, is_weights_only=is_weights_only)
+        tta_probs.append(p)
+
+    return np.mean(tta_probs, axis=0)
+
+
+def predict_rasc_net(image_bytes, use_tta=True):
     with _model_lock:
         t_start = time.perf_counter()
         idx2label = get_label_mapping()
@@ -287,7 +313,12 @@ def predict_rasc_net(image_bytes):
 
         _, img_tensor = preprocess_image(image_bytes, "rasc_net")
 
-        if rasc_tflite.exists():
+        enable_tta = getattr(cfg, "ENABLE_TTA", True) and use_tta
+
+        if enable_tta:
+            logger.info("[TTA Engine] Running Test-Time Augmentation (4 variants) for RASC-Net...")
+            probs = run_tta_inference("RASC-Net", rasc_tflite, exp3_path, img_tensor, is_weights_only=True)
+        elif rasc_tflite.exists():
             try:
                 probs = run_tflite_inference("RASC-Net", rasc_tflite, img_tensor)
             except Exception as e:
@@ -296,6 +327,7 @@ def predict_rasc_net(image_bytes):
         else:
             logger.info("[TFLite Missing] Falling back to Keras for RASC-Net.")
             probs = run_keras_fallback("RASC-Net", exp3_path, img_tensor, is_weights_only=True)
+
 
         t_total = time.perf_counter() - t_start
         logger.info(f"Total RASC-Net TFLite Request Time: {t_total:.4f} s")

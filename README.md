@@ -13,13 +13,15 @@ An end-to-end deep learning framework and Clinical Decision Support System (CDSS
 - [Repository Structure](#repository-structure)
 - [Installation & Environment Setup](#installation--environment-setup)
 - [Dataset Preparation](#dataset-preparation)
-- [Training & Ablation Experiments](#training--ablation-experiments)
+- [Training & Accuracy Optimizations](#training--accuracy-optimizations)
+- [Hugging Face Model Hub & Deployment](#-hugging-face-model-hub--deployment)
 - [Scientific Benchmark & Evaluation](#scientific-benchmark--evaluation)
 - [Launching Web Application](#launching-web-application)
 - [Local PC Deployment via Microsoft Dev Tunnels](#-local-pc-deployment-via-microsoft-dev-tunnels)
 - [Environment Configuration](#-environment-configuration)
 - [Key Findings & Results](#key-findings--results)
 - [Citation & Acknowledgments](#citation--acknowledgments)
+
 
 ---
 
@@ -111,17 +113,40 @@ backend/data/
 
 ---
 
-## 🚀 Training & Ablation Experiments
+## 🚀 Training & Accuracy Optimizations
 
-To run the full RASC-Net Ablation Study (Exp 1: Baseline, Exp 2: Regularized, Exp 3: Proposed):
+To retrain models with the upgraded spatial orientation augmentations, GELU classification heads, Cosine Decay LR, and class-weighted Focal Loss:
 
 ```bash
+# Train individual models or run full pipeline
+python backend/src/train_models.py
 python backend/src/run_ablation_study.py
 ```
 
-Outputs will be automatically saved under `backend/outputs/experiments/`.
+---
+
+## 🤗 Hugging Face Model Hub & Deployment
+
+### 1. Hosting Model Weights on Hugging Face Hub
+Since deep learning models (especially `.keras` weights like ResNet50 ~100MB) can exceed free cloud host storage limits, model weights are hosted on **Hugging Face Model Hub**.
+
+To upload newly trained models to Hugging Face Model Hub:
+```bash
+pip install huggingface_hub
+python backend/src/upload_to_huggingface.py --repo-id "srushti-projects/skin-cancer-adversarial-defense" --token "YOUR_HF_WRITE_TOKEN"
+```
+
+The backend automatically attempts to download models from Hugging Face Model Hub via `download_models.py` at startup.
+
+### 2. Free Cloud Backend Deployment on Hugging Face Spaces (16 GB RAM)
+Render's free tier has a 512 MB RAM limit, which crashes under TensorFlow model loading. **Hugging Face Spaces provides 16 GB RAM and 2 CPU cores FOR FREE**.
+
+1. Create a new Space on [Hugging Face Spaces](https://huggingface.co/new-space).
+2. Select **Docker** as the SDK.
+3. Push this repository to your Space. The included `Dockerfile` will automatically build the environment, download models from Hugging Face Hub, and launch the Flask API on port 7860!
 
 ---
+
 
 ## 🔬 Scientific Benchmark & Evaluation
 

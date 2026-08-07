@@ -182,12 +182,15 @@ def _build_transfer_classifier(
     inputs = tf.keras.Input(shape=(224, 224, 3))
     x = base_model(inputs, training=False)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    x = tf.keras.layers.Dense(128, activation="relu")(x)
-    x = tf.keras.layers.Dropout(0.3)(x)
+    x = tf.keras.layers.Dense(256, use_bias=False, kernel_initializer="he_normal")(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Activation("gelu")(x)
+    x = tf.keras.layers.Dropout(0.4)(x)
     outputs = tf.keras.layers.Dense(num_classes, activation="softmax")(x)
 
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name=model_name)
     return model, base_model
+
 
 
 def _categorical_focal_loss(gamma: float, label_smoothing: float = 0.0):
