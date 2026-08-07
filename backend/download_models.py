@@ -4,8 +4,9 @@ import requests
 # Base directory points to backend/ folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-HF_REPO = "srushti-projects/skin-cancer-adversarial-defense"
+HF_REPO = "holypreet/rasc-net"
 HF_BASE_URL = f"https://huggingface.co/{HF_REPO}/resolve/main"
+
 
 MODELS = {
     # Original TensorFlow Keras Models (Hugging Face Model Hub primary, GitHub fallback)

@@ -87,8 +87,9 @@ TTA_STEPS = 4
 # -----------------------------
 # Hugging Face Hub Integration
 # -----------------------------
-HF_REPO_ID = "srushti-projects/skin-cancer-adversarial-defense"
+HF_REPO_ID = "holypreet/rasc-net"
 HF_HUB_URL = f"https://huggingface.co/{HF_REPO_ID}/resolve/main"
+
 
 PGD_EPSILON = 0.01
 PGD_ALPHA = 0.002
