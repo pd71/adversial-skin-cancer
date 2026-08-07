@@ -443,6 +443,18 @@ def evaluate_all_models_pipeline() -> Dict[str, Any]:
     cfg.ensure_project_dirs()
     print("=== Launching Unified Benchmark Evaluation Framework ===")
 
+    if not cfg.dataset_paths_exist():
+        print("\n" + "=" * 70)
+        print("[DATASET MISSING] Full HAM10000 dataset is required to run master benchmarks.")
+        print(f"Expected files under: {cfg.DATA_DIR}")
+        print("  - HAM10000_metadata.csv")
+        print("  - HAM10000_images_part_1/")
+        print("  - HAM10000_images_part_2/")
+        print("Download dataset from Kaggle or ISIC Archive:")
+        print("  https://www.kaggle.com/datasets/kmader/skin-cancer-mnist-ham10000")
+        print("=" * 70 + "\n")
+        return {}
+
     data_dict = load_ham10000_data(batch_size=cfg.BATCH_SIZE)
     test_ds = data_dict["test_ds"]
     test_df = data_dict["test_df"]
@@ -451,6 +463,7 @@ def evaluate_all_models_pipeline() -> Dict[str, Any]:
     class_names = [index_to_label[i] for i in sorted(index_to_label.keys())]
 
     y_test_oh = tf.one_hot(y_test_full, depth=len(class_names)).numpy()
+
 
     models_root = cfg.MODELS_DIR
     exp_root = cfg.OUTPUTS_DIR / "experiments"
