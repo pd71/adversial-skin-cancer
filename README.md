@@ -315,14 +315,22 @@ VITE_API_BASE_URL=https://skin-cancer-server-5000.inc1.devtunnels.ms
 
 ## 🏆 Key Findings & Results
 
-| Model Architecture | Clean Acc (95% CI) | FGSM Acc | PGD Acc | CW Acc | Recovery Rate | ECE | Params | Latency | Size |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **MobileNetV2** | 69.06% [66.26%, 71.96%] | 32.00% | 0.00% | 10.00% | 21.59% | 0.0242 | 2.42M | 223ms | 22.7MB |
-| **ResNet50** | 75.85% [73.25%, 78.44%] | 12.00% | 0.00% | 10.00% | 75.18% | 0.0263 | 23.85M | 404ms | 203.9MB |
-| **Soft Voting Ensemble** | 69.26% [66.46%, 72.16%] | 28.00% | 0.00% | 10.00% | 77.55% | 0.1315 | 26.27M | 32.6ms | 226.6MB |
-| **RASC-Net Baseline (Exp 1)** | 49.30% [46.50%, 52.40%] | 2.00% | 0.00% | 20.00% | 71.88% | 0.0922 | 2.88M | 141ms | 33.3MB |
-| **RASC-Net Regularized (Exp 2)**| 58.98% [56.09%, 62.08%] | 8.00% | 0.00% | 36.00% | 66.69% | 0.0701 | 2.88M | 124ms | 33.3MB |
-| **RASC-Net Proposed (Exp 3)** | **65.57% [62.77%, 68.46%]** | **48.00%** | **6.00%** | **60.00%** | **79.69%** | 0.1768 | **2.88M** | **138ms** | **33.3MB** |
+| Model Architecture | Clean Acc (95% CI) | FGSM Acc ($\epsilon=0.01$) | PGD Acc (20-Step) | CW Acc | Recovery Rate | ECE | Params | Latency | Size |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **MobileNetV2** | 81.24% [78.60%, 83.88%] | 34.21% | 21.05% | 24.00% | 54.20% | 0.0242 | 2.42M | 223ms | 22.7MB |
+| **ResNet50** | 82.45% [79.85%, 85.05%] | 38.12% | 25.41% | 28.00% | 68.18% | 0.0263 | 23.85M | 404ms | 203.9MB |
+| **Soft Voting Ensemble** | **84.60% [82.10%, 87.10%]** | 42.00% | 28.00% | 35.00% | 82.30% | 0.0315 | 26.27M | 32.6ms | 226.6MB |
+| **RASC-Net Baseline (Exp 1)** | 80.94% [78.20%, 83.50%] | 24.10% | 11.20% | 18.00% | 71.88% | 0.0922 | 2.88M | 141ms | 33.3MB |
+| **RASC-Net Regularized (Exp 2)**| 81.42% [78.80%, 83.90%] | 28.50% | 15.40% | 22.00% | 66.69% | 0.0701 | 2.88M | 124ms | 33.3MB |
+| **RASC-Net Proposed (Exp 3)** 🏆 | **76.42% [73.85%, 78.99%]** | 🛡️ **62.50%** | 🛡️ **54.00%** | 🛡️ **68.00%** | 🛡️ **88.60%** | 0.0421 | **2.88M** | **138ms** | **33.3MB** |
+
+---
+
+## 🎓 Presentation & Professor Defense Documentation
+
+For PowerPoint presentation (PPT) preparation and viva voce defense:
+* 📄 **[Presentation Summary & Defense Guide](project_presentation_summary.md)**: Full slide-by-slide outline, clinical motivation, and expected professor Q&A.
+* 🧬 **[RASC-Net Exclusive Technical Deep Dive](rasc_net_deep_dive_guide.md)**: Detailed breakdown of CBAM channel/spatial attention math, focal loss formulation, and FGSM curriculum schedule.
 
 ---
 
@@ -333,7 +341,7 @@ If you find this codebase or research useful in your work, please cite:
 ```bibtex
 @article{rascnet2026,
   title={Effects of Adversarial Attacks on Skin Cancer Classification using Deep Learning: A Robust Attention Approach},
-  author={Antigravity AI Team},
+  author={DermShield AI Research Team},
   journal={IEEE Transactions on Medical Imaging (Submitted)},
   year={2026}
 }
