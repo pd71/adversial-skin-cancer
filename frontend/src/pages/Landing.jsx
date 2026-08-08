@@ -58,10 +58,10 @@ const Landing = () => {
           className="space-y-4"
         >
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#3B2F2F] tracking-tight leading-tight">
-            RASC-Net Clinical AI
+            DermShield AI
           </h1>
           <h2 className="text-lg sm:text-2xl font-bold text-[#8B6B4A] max-w-2xl mx-auto">
-            AI Assisted Skin Cancer Analysis and Adversarial Defense Platform
+            Clinical Skin Cancer Analysis and Adversarial Defense Platform
           </h2>
           <p className="text-sm sm:text-base text-[#7A624A] max-w-xl mx-auto leading-relaxed">
             Early detection through Artificial Intelligence, Clinical Risk Assessment, and Adversarial Robustness Benchmarking.

@@ -58,7 +58,7 @@ const Dashboard = () => {
               <span>IPD Capstone • Production Medical AI Suite</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-[#3B2F2F] tracking-tight">
-              RASC-Net Clinical Decision Support Platform
+              DermShield AI Clinical Decision Support Platform
             </h1>
             <p className="text-sm md:text-base text-[#7A624A] leading-relaxed">
               Residual Attention Skin Cancer Network with adversarial robustness benchmarking, clinical decision engine, and scientific evaluations.
