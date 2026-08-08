@@ -216,108 +216,108 @@ const Predict = () => {
 
             {/* Age Approx */}
             <div className="space-y-1.5">
-              <label className="font-bold text-[#3B2F2F]">Patient Age (Approx)</label>
+              <label className="font-bold text-[#3B2F2F] dark:text-[#F5EFEB]">Patient Age (Approx)</label>
               <input
                 type="number"
                 name="age_approx"
                 value={metadata.age_approx}
                 onChange={handleMetadataChange}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] dark:border-[#3D332B] bg-[#F8F5F0] dark:bg-[#26201B] text-[#3B2F2F] dark:text-[#F5EFEB] font-semibold focus:outline-none focus:border-[#8B6B4A] dark:focus:border-[#D4AF37] transition-colors"
               />
             </div>
 
             {/* Sex */}
             <div className="space-y-1.5">
-              <label className="font-bold text-[#3B2F2F]">Patient Sex</label>
+              <label className="font-bold text-[#3B2F2F] dark:text-[#F5EFEB]">Patient Sex</label>
               <select
                 name="sex"
                 value={metadata.sex}
                 onChange={handleMetadataChange}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] dark:border-[#3D332B] bg-[#F8F5F0] dark:bg-[#26201B] text-[#3B2F2F] dark:text-[#F5EFEB] font-semibold focus:outline-none focus:border-[#8B6B4A] dark:focus:border-[#D4AF37] transition-colors"
               >
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="unknown">Unknown</option>
+                <option value="male" className="bg-[#FFFDF9] dark:bg-[#1C1814] text-[#3B2F2F] dark:text-[#F5EFEB]">Male</option>
+                <option value="female" className="bg-[#FFFDF9] dark:bg-[#1C1814] text-[#3B2F2F] dark:text-[#F5EFEB]">Female</option>
+                <option value="unknown" className="bg-[#FFFDF9] dark:bg-[#1C1814] text-[#3B2F2F] dark:text-[#F5EFEB]">Unknown</option>
               </select>
             </div>
 
             {/* Anatomical Site 1 */}
             <div className="space-y-1.5">
-              <label className="font-bold text-[#3B2F2F]">Anatomical Region (Site 1)</label>
+              <label className="font-bold text-[#3B2F2F] dark:text-[#F5EFEB]">Anatomical Region (Site 1)</label>
               <input
                 type="text"
                 name="anatom_site_1"
                 value={metadata.anatom_site_1}
                 onChange={handleMetadataChange}
                 placeholder="e.g. torso, head/neck"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] dark:border-[#3D332B] bg-[#F8F5F0] dark:bg-[#26201B] text-[#3B2F2F] dark:text-[#F5EFEB] font-semibold focus:outline-none focus:border-[#8B6B4A] dark:focus:border-[#D4AF37] transition-colors"
               />
             </div>
 
             {/* Anatomical Site 2 */}
             <div className="space-y-1.5">
-              <label className="font-bold text-[#3B2F2F]">Specific Location (Site 2)</label>
+              <label className="font-bold text-[#3B2F2F] dark:text-[#F5EFEB]">Specific Location (Site 2)</label>
               <input
                 type="text"
                 name="anatom_site_2"
                 value={metadata.anatom_site_2}
                 onChange={handleMetadataChange}
                 placeholder="e.g. cheek, chest"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] dark:border-[#3D332B] bg-[#F8F5F0] dark:bg-[#26201B] text-[#3B2F2F] dark:text-[#F5EFEB] font-semibold focus:outline-none focus:border-[#8B6B4A] dark:focus:border-[#D4AF37] transition-colors"
               />
             </div>
 
             {/* Anatomical Site 3 */}
             <div className="space-y-1.5">
-              <label className="font-bold text-[#3B2F2F]">Sub-Location / Side (Site 3)</label>
+              <label className="font-bold text-[#3B2F2F] dark:text-[#F5EFEB]">Sub-Location / Side (Site 3)</label>
               <input
                 type="text"
                 name="anatom_site_3"
                 value={metadata.anatom_site_3}
                 onChange={handleMetadataChange}
                 placeholder="e.g. right side, anterior"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] dark:border-[#3D332B] bg-[#F8F5F0] dark:bg-[#26201B] text-[#3B2F2F] dark:text-[#F5EFEB] font-semibold focus:outline-none focus:border-[#8B6B4A] dark:focus:border-[#D4AF37] transition-colors"
               />
             </div>
 
             {/* Melanocytic Status */}
             <div className="space-y-1.5">
-              <label className="font-bold text-[#3B2F2F]">Melanocytic Lesion</label>
+              <label className="font-bold text-[#3B2F2F] dark:text-[#F5EFEB]">Melanocytic Lesion</label>
               <select
                 name="melanocytic"
                 value={metadata.melanocytic}
                 onChange={handleMetadataChange}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] dark:border-[#3D332B] bg-[#F8F5F0] dark:bg-[#26201B] text-[#3B2F2F] dark:text-[#F5EFEB] font-semibold focus:outline-none focus:border-[#8B6B4A] dark:focus:border-[#D4AF37] transition-colors"
               >
-                <option value="false">False (Non-melanocytic)</option>
-                <option value="true">True (Melanocytic)</option>
+                <option value="false" className="bg-[#FFFDF9] dark:bg-[#1C1814] text-[#3B2F2F] dark:text-[#F5EFEB]">False (Non-melanocytic)</option>
+                <option value="true" className="bg-[#FFFDF9] dark:bg-[#1C1814] text-[#3B2F2F] dark:text-[#F5EFEB]">True (Melanocytic)</option>
               </select>
             </div>
 
             {/* Concomitant Biopsy */}
             <div className="space-y-1.5">
-              <label className="font-bold text-[#3B2F2F]">Concomitant Biopsy Performed</label>
+              <label className="font-bold text-[#3B2F2F] dark:text-[#F5EFEB]">Concomitant Biopsy Performed</label>
               <select
                 name="concomitant_biopsy"
                 value={metadata.concomitant_biopsy}
                 onChange={handleMetadataChange}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] dark:border-[#3D332B] bg-[#F8F5F0] dark:bg-[#26201B] text-[#3B2F2F] dark:text-[#F5EFEB] font-semibold focus:outline-none focus:border-[#8B6B4A] dark:focus:border-[#D4AF37] transition-colors"
               >
-                <option value="false">False</option>
-                <option value="true">True</option>
+                <option value="false" className="bg-[#FFFDF9] dark:bg-[#1C1814] text-[#3B2F2F] dark:text-[#F5EFEB]">False</option>
+                <option value="true" className="bg-[#FFFDF9] dark:bg-[#1C1814] text-[#3B2F2F] dark:text-[#F5EFEB]">True</option>
               </select>
             </div>
 
             {/* Primary Diagnosis */}
             <div className="space-y-1.5 md:col-span-2">
-              <label className="font-bold text-[#3B2F2F]">Primary Clinical Impression (Diagnosis 1)</label>
+              <label className="font-bold text-[#3B2F2F] dark:text-[#F5EFEB]">Primary Clinical Impression (Diagnosis 1)</label>
               <input
                 type="text"
                 name="diagnosis_1"
                 value={metadata.diagnosis_1}
                 onChange={handleMetadataChange}
                 placeholder="e.g. none, melanoma"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] bg-[#F8F5F0] text-[#3B2F2F] font-semibold focus:outline-none focus:border-[#8B6B4A]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E7DDD2] dark:border-[#3D332B] bg-[#F8F5F0] dark:bg-[#26201B] text-[#3B2F2F] dark:text-[#F5EFEB] font-semibold focus:outline-none focus:border-[#8B6B4A] dark:focus:border-[#D4AF37] transition-colors"
               />
             </div>
 

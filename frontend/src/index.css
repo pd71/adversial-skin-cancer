@@ -78,6 +78,20 @@ main.min-h-screen,
   color: #D4AF37 !important;
 }
 
+/* Form Inputs and Select Dropdowns Dark Mode Fix */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #26201B !important;
+  color: #F5EFEB !important;
+  border-color: #3D332B !important;
+}
+
+.dark select option {
+  background-color: #1C1814 !important;
+  color: #F5EFEB !important;
+}
+
 /* Ensure Report Modal preview is ALWAYS crisp white medical document format regardless of dark mode */
 .printable-modal,
 .dark .printable-modal {
