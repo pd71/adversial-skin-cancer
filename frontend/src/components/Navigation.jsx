@@ -30,12 +30,12 @@ const Navigation = () => {
             </div>
             <div>
               <div className="font-extrabold text-xl text-[#3B2F2F] tracking-tight flex items-center space-x-2">
-                <span>RASC-Net</span>
+                <span>DermShield AI</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-[#F4EFE6] text-[#8B6B4A] uppercase tracking-wider border border-[#E7DDD2]">
-                  Clinical AI
+                  RASC-Net Defense
                 </span>
               </div>
-              <div className="text-[11px] text-[#7A624A] font-medium">Skin Cancer Decision Support System</div>
+              <div className="text-[11px] text-[#7A624A] font-medium">Clinical Dermoscopy Decision Support System</div>
             </div>
           </Link>
 
