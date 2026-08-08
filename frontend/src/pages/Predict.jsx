@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { 
   AlertTriangle, X, HeartPulse, 
-  Stethoscope, FileText, Printer, Sparkles, Eye, RefreshCw
+  Stethoscope, FileText, Printer, Sparkles, Eye, RefreshCw, ShieldCheck, Loader2
 } from 'lucide-react';
 import ImageUploadCard from '../components/ImageUploadCard';
 import { getApiBaseUrl } from '../config';
@@ -13,6 +13,9 @@ const Predict = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   
+  // Ref for smooth scrolling to prediction results
+  const resultsRef = useRef(null);
+
   // Patient Metadata Form State (12 HAM10000 Fields)
   const [metadata, setMetadata] = useState({
     age_approx: '60',
@@ -42,6 +45,16 @@ const Predict = () => {
 
   // Modal State
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+
+  // Smooth scroll to results section after prediction renders
+  useEffect(() => {
+    if (predictionData && resultsRef.current) {
+      const timer = setTimeout(() => {
+        resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [predictionData]);
 
   const handleMetadataChange = (e) => {
     const { name, value } = e.target;
@@ -128,11 +141,10 @@ const Predict = () => {
       });
 
       setPredictionData(res.data);
-      setLoading(false);
-
     } catch (err) {
       const serverErr = err.response?.data?.error || err.response?.data?.message;
       setError(serverErr ? `Prediction failed: ${serverErr}` : `Prediction failed: ${err.message || 'Error executing model prediction'}`);
+    } finally {
       setLoading(false);
     }
   };
@@ -350,7 +362,7 @@ const Predict = () => {
 
         {/* Results Section */}
         {predictionData && ensembleData && (
-          <div className="space-y-8 animate-fade-in">
+          <div ref={resultsRef} className="space-y-8 animate-fade-in scroll-mt-24">
             
             {/* Soft Voting Ensemble Prediction Card */}
             <div className="bg-[#FFFDF9] rounded-2xl p-6 md:p-8 shadow-md border border-[#E7DDD2] space-y-6">
@@ -591,6 +603,40 @@ const Predict = () => {
                 <div><strong>Recommendation:</strong> {riskData.recommendation}</div>
               </div>
             )}
+
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen Glassmorphism Processing Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#3B2F2F]/40 backdrop-blur-md transition-all duration-300 animate-fade-in pointer-events-auto">
+          <div className="bg-[#FFFDF9]/95 backdrop-blur-xl border border-[#E7DDD2] shadow-2xl rounded-3xl p-8 max-w-md w-full text-center space-y-6 transform scale-100 transition-all">
+            
+            {/* Clinical Animated Scanner Ring */}
+            <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-[#8B6B4A]/20 border-t-[#8B6B4A] animate-spin" />
+              <div className="absolute -inset-2 rounded-full border border-dashed border-[#8B6B4A]/30 animate-spin" style={{ animationDuration: '12s' }} />
+              <ShieldCheck className="w-9 h-9 text-[#8B6B4A]" />
+            </div>
+
+            {/* Status & Medical Subtitles */}
+            <div className="space-y-2">
+              <h3 className="text-xl font-extrabold text-[#3B2F2F] tracking-tight">
+                Analyzing Image...
+              </h3>
+              <p className="text-xs font-bold text-[#8B6B4A] uppercase tracking-wider">
+                Running Ensemble Prediction
+              </p>
+              <p className="text-xs text-[#7A624A] pt-1">
+                Evaluating multi-model probabilities & clinical risk indicators...
+              </p>
+            </div>
+
+            {/* Progress Accent Bar */}
+            <div className="w-full bg-[#F4EFE6] h-1.5 rounded-full overflow-hidden">
+              <div className="bg-gradient-to-r from-[#8B6B4A] to-[#6E5338] h-full rounded-full animate-progress-bar w-full" />
+            </div>
 
           </div>
         </div>
