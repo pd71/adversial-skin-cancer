@@ -3,9 +3,9 @@ import axios from 'axios';
 import { 
   BarChart2, ShieldCheck, Activity, Layers, Award, Cpu
 } from 'lucide-react';
+import { getApiBaseUrl } from '../config';
 
-const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-const API_BASE = rawApiBase.replace(/\/+$/, '');
+const API_BASE = getApiBaseUrl();
 
 const MASTER_BENCHMARK_DATA = [
   {

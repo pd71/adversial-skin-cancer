@@ -5,9 +5,9 @@ import {
   Stethoscope, FileText, Printer, Sparkles, Eye, RefreshCw
 } from 'lucide-react';
 import ImageUploadCard from '../components/ImageUploadCard';
+import { getApiBaseUrl } from '../config';
 
-const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-const API_BASE = rawApiBase.replace(/\/+$/, '');
+const API_BASE = getApiBaseUrl();
 
 const Predict = () => {
   const [selectedFile, setSelectedFile] = useState(null);
