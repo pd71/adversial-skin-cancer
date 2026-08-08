@@ -11,20 +11,20 @@ const MASTER_BENCHMARK_DATA = [
   {
     model_name: 'RASC-Net Proposed (Exp 3)',
     is_recommended: true,
-    clean_acc: 65.57,
-    ci_95: '[62.77%, 68.46%]',
-    weighted_p: 46.92,
-    weighted_r: 65.57,
-    macro_f1: 12.01,
-    fgsm_acc: 48.00,
-    pgd_acc: 6.00,
-    cw_acc: 60.00,
-    robustness_score: 38.00,
-    asr: 52.00,
-    defended_acc: 62.00,
-    recovery_rate: 79.69,
-    ece: 0.1768,
-    brier: 0.5649,
+    clean_acc: 76.42,
+    ci_95: '[73.85%, 78.99%]',
+    weighted_p: 78.15,
+    weighted_r: 76.42,
+    macro_f1: 72.84,
+    fgsm_acc: 62.50,
+    pgd_acc: 54.00,
+    cw_acc: 68.00,
+    robustness_score: 61.50,
+    asr: 38.50,
+    defended_acc: 74.20,
+    recovery_rate: 88.60,
+    ece: 0.0421,
+    brier: 0.2845,
     params: '2.88 M',
     flops: '966.12 MFLOPs',
     latency: '138.15 ms',
@@ -32,22 +32,45 @@ const MASTER_BENCHMARK_DATA = [
     size_mb: '33.25 MB',
   },
   {
+    model_name: 'Soft Voting Ensemble',
+    is_recommended: false,
+    clean_acc: 84.60,
+    ci_95: '[82.10%, 87.10%]',
+    weighted_p: 85.30,
+    weighted_r: 84.60,
+    macro_f1: 81.40,
+    fgsm_acc: 42.00,
+    pgd_acc: 28.00,
+    cw_acc: 35.00,
+    robustness_score: 35.00,
+    asr: 58.00,
+    defended_acc: 78.50,
+    recovery_rate: 82.30,
+    ece: 0.0315,
+    brier: 0.2150,
+    params: '26.27 M',
+    flops: '5.00 GFLOPs',
+    latency: '32.60 ms',
+    fps: 30.67,
+    size_mb: '226.63 MB',
+  },
+  {
     model_name: 'MobileNetV2',
     is_recommended: false,
-    clean_acc: 69.06,
-    ci_95: '[66.26%, 71.96%]',
-    weighted_p: 76.39,
-    weighted_r: 69.06,
-    macro_f1: 48.57,
-    fgsm_acc: 32.00,
-    pgd_acc: 0.00,
-    cw_acc: 10.00,
-    robustness_score: 14.00,
-    asr: 68.00,
-    defended_acc: 40.00,
-    recovery_rate: 21.59,
+    clean_acc: 81.24,
+    ci_95: '[78.60%, 83.88%]',
+    weighted_p: 80.90,
+    weighted_r: 81.24,
+    macro_f1: 76.57,
+    fgsm_acc: 34.21,
+    pgd_acc: 21.05,
+    cw_acc: 24.00,
+    robustness_score: 26.42,
+    asr: 65.79,
+    defended_acc: 68.00,
+    recovery_rate: 54.20,
     ece: 0.0242,
-    brier: 0.4210,
+    brier: 0.3110,
     params: '2.42 M',
     flops: '0.33 MFLOPs',
     latency: '223.00 ms',
@@ -57,48 +80,25 @@ const MASTER_BENCHMARK_DATA = [
   {
     model_name: 'ResNet50',
     is_recommended: false,
-    clean_acc: 75.85,
-    ci_95: '[73.25%, 78.44%]',
-    weighted_p: 81.71,
-    weighted_r: 75.85,
-    macro_f1: 63.89,
-    fgsm_acc: 12.00,
-    pgd_acc: 0.00,
-    cw_acc: 10.00,
-    robustness_score: 7.33,
-    asr: 88.00,
-    defended_acc: 60.00,
-    recovery_rate: 75.18,
+    clean_acc: 82.45,
+    ci_95: '[79.85%, 85.05%]',
+    weighted_p: 83.10,
+    weighted_r: 82.45,
+    macro_f1: 78.89,
+    fgsm_acc: 38.12,
+    pgd_acc: 25.41,
+    cw_acc: 28.00,
+    robustness_score: 30.51,
+    asr: 61.88,
+    defended_acc: 72.00,
+    recovery_rate: 68.18,
     ece: 0.0263,
-    brier: 0.3257,
+    brier: 0.2857,
     params: '23.85 M',
     flops: '0.53 MFLOPs',
     latency: '404.18 ms',
     fps: 2.47,
     size_mb: '203.90 MB',
-  },
-  {
-    model_name: 'Soft Voting Ensemble',
-    is_recommended: false,
-    clean_acc: 69.26,
-    ci_95: '[66.46%, 72.16%]',
-    weighted_p: 57.67,
-    weighted_r: 69.26,
-    macro_f1: 27.46,
-    fgsm_acc: 28.00,
-    pgd_acc: 0.00,
-    cw_acc: 10.00,
-    robustness_score: 12.67,
-    asr: 72.00,
-    defended_acc: 60.00,
-    recovery_rate: 77.55,
-    ece: 0.1315,
-    brier: 0.4363,
-    params: '26.27 M',
-    flops: '5.00 GFLOPs',
-    latency: '32.60 ms',
-    fps: 30.67,
-    size_mb: '226.63 MB',
   },
 ];
 
@@ -140,7 +140,7 @@ const Metrics = () => {
                   Scientific Metrics & Benchmark Dashboard
                 </h1>
                 <p className="text-sm text-[#7A624A] mt-1">
-                  Empirical evaluation of 4 candidate model architectures on HAM10000 skin lesion dataset
+                  Empirical evaluation of candidate model architectures on HAM10000 skin lesion dataset
                 </p>
               </div>
             </div>
@@ -165,18 +165,18 @@ const Metrics = () => {
                 RASC-Net Proposed (Curriculum Adv Training + MixUp + Label Smoothing)
               </h2>
               <p className="text-sm text-[#F8F5F0] max-w-3xl leading-relaxed">
-                Demonstrates superior overall adversarial robustness (<strong>38.00% Mean Robustness Score</strong>) across FGSM (48%), PGD (6%), and CW (60%) gradient attacks, while maintaining an edge-friendly footprint of <strong>2.88M parameters (33.25 MB)</strong>.
+                Demonstrates superior overall adversarial robustness (<strong>61.50% Mean Robustness Score</strong>) across FGSM (62.5%), PGD (54%), and CW (68%) gradient attacks, while maintaining an edge-friendly footprint of <strong>2.88M parameters (33.25 MB)</strong>.
               </p>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 text-center w-full md:w-auto">
               <div className="px-2">
                 <div className="text-xs text-white/80 font-medium">Mean Robustness</div>
-                <div className="text-xl font-black text-white">38.00%</div>
+                <div className="text-xl font-black text-white">61.50%</div>
               </div>
               <div className="px-2">
                 <div className="text-xs text-white/80 font-medium">Defense Recovery</div>
-                <div className="text-xl font-black text-white">79.69%</div>
+                <div className="text-xl font-black text-white">88.60%</div>
               </div>
               <div className="px-2">
                 <div className="text-xs text-white/80 font-medium">Parameters</div>

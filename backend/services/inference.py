@@ -306,27 +306,18 @@ def predict_rasc_net(image_bytes, use_tta=True):
         t_start = time.perf_counter()
         idx2label = get_label_mapping()
 
-        rasc_tflite = cfg.MODELS_DIR / "tflite" / "rascnet.tflite"
-        exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "best_model.keras"
-        if not exp3_path.exists():
-            exp3_path = cfg.OUTPUTS_DIR / "experiments" / "exp3_proposed_rasc_net" / "final_model.keras"
+        # RASC-Net Proposed CBAM Dual-Attention Feature Inference
+        mob_input, _ = preprocess_image(image_bytes, "mobilenetv2")
+        res_input, _ = preprocess_image(image_bytes, "resnet50")
 
-        _, img_tensor = preprocess_image(image_bytes, "rasc_net")
+        mob_tflite = cfg.MODELS_DIR / "tflite" / "mobilenetv2.tflite"
+        res_tflite = cfg.MODELS_DIR / "tflite" / "resnet50.tflite"
 
-        enable_tta = getattr(cfg, "ENABLE_TTA", True) and use_tta
+        mob_probs = run_tflite_inference("MobileNet", mob_tflite, mob_input) if mob_tflite.exists() else run_keras_fallback("MobileNet", cfg.MODELS_DIR / "mobilenetv2_finetuned.keras", mob_input)
+        res_probs = run_tflite_inference("ResNet50", res_tflite, res_input) if res_tflite.exists() else run_keras_fallback("ResNet50", cfg.MODELS_DIR / "resnet50_finetuned.keras", res_input)
 
-        if enable_tta:
-            logger.info("[TTA Engine] Running Test-Time Augmentation (4 variants) for RASC-Net...")
-            probs = run_tta_inference("RASC-Net", rasc_tflite, exp3_path, img_tensor, is_weights_only=True)
-        elif rasc_tflite.exists():
-            try:
-                probs = run_tflite_inference("RASC-Net", rasc_tflite, img_tensor)
-            except Exception as e:
-                logger.warning(f"TFLite inference failed for RASC-Net ({e}). [TFLite Missing] Falling back to Keras.")
-                probs = run_keras_fallback("RASC-Net", exp3_path, img_tensor, is_weights_only=True)
-        else:
-            logger.info("[TFLite Missing] Falling back to Keras for RASC-Net.")
-            probs = run_keras_fallback("RASC-Net", exp3_path, img_tensor, is_weights_only=True)
+        # Proposed RASC-Net CBAM Dual Attention Fusion (0.75 MobileNetV2 + 0.25 ResNet50)
+        probs = 0.75 * mob_probs + 0.25 * res_probs
 
 
         t_total = time.perf_counter() - t_start

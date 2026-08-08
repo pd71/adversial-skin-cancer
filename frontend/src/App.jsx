@@ -7,30 +7,41 @@ import Predict from './pages/Predict';
 import Attacks from './pages/Attacks';
 import Metrics from './pages/Metrics';
 
+import { ThemeProvider } from './context/ThemeContext';
+
+import MedicalCellularBackground from './components/MedicalCellularBackground';
+
 const AppLayout = () => {
   const location = useLocation();
   // Hide Navbar only on Landing page ('/')
   const isLandingPage = location.pathname === '/';
 
   return (
-    <>
-      {!isLandingPage && <Navigation />}
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/predict" element={<Predict />} />
-        <Route path="/attacks" element={<Attacks />} />
-        <Route path="/metrics" element={<Metrics />} />
-      </Routes>
-    </>
+    <div className="relative min-h-screen">
+      {/* Global Background Medical Dermoscopy Cellular Animation Layer */}
+      <MedicalCellularBackground />
+
+      <div className="relative z-10">
+        {!isLandingPage && <Navigation />}
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/predict" element={<Predict />} />
+          <Route path="/attacks" element={<Attacks />} />
+          <Route path="/metrics" element={<Metrics />} />
+        </Routes>
+      </div>
+    </div>
   );
 };
 
 function App() {
   return (
-    <Router>
-      <AppLayout />
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <AppLayout />
+      </Router>
+    </ThemeProvider>
   );
 }
 

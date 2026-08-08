@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --bg-main: #F8F5F0;
@@ -12,12 +14,107 @@
     --text-muted: #7A624A;
   }
 
+  .dark {
+    --bg-main: #12100E;
+    --card-main: #1C1814;
+    --primary-color: #D4AF37;
+    --secondary-color: #8B6B4A;
+    --accent-color: #C8A97E;
+    --border-color: #2E2721;
+    --text-dark: #F5EFEB;
+    --text-muted: #B8A594;
+    color-scheme: dark;
+  }
+
   body {
     background-color: var(--bg-main);
     color: var(--text-dark);
     font-family: 'Inter', 'Poppins', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
+}
+
+/* Global Dark Mode Overrides for hardcoded page styles */
+.dark body {
+  background-color: #12100E !important;
+  color: #F5EFEB !important;
+}
+
+/* Make page containers transparent so the animated medical background layer is clearly visible in both Light and Dark mode */
+div.min-h-screen,
+main.min-h-screen,
+.bg-\[\#F8F5F0\] {
+  background-color: transparent !important;
+}
+
+.dark div.min-h-screen,
+.dark main {
+  background-color: transparent !important;
+  color: #F5EFEB !important;
+}
+
+.dark .bg-\[\#FFFDF9\],
+.dark .bg-white {
+  background-color: #1C1814 !important;
+  color: #F5EFEB !important;
+}
+
+.dark .border-\[\#E7DDD2\],
+.dark .border-\[\#F4EFE6\] {
+  border-color: #2E2721 !important;
+}
+
+.dark .text-\[\#3B2F2F\] {
+  color: #F5EFEB !important;
+}
+
+.dark .text-\[\#7A624A\] {
+  color: #B8A594 !important;
+}
+
+.dark .bg-\[\#F4EFE6\] {
+  background-color: #25201B !important;
+  color: #D4AF37 !important;
+}
+
+/* Ensure Report Modal preview is ALWAYS crisp white medical document format regardless of dark mode */
+.printable-modal,
+.dark .printable-modal {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+
+.printable-modal h2,
+.dark .printable-modal h2,
+.printable-modal h3,
+.dark .printable-modal h3,
+.printable-modal h4,
+.dark .printable-modal h4,
+.printable-modal div,
+.dark .printable-modal div,
+.printable-modal span,
+.dark .printable-modal span,
+.printable-modal strong,
+.dark .printable-modal strong {
+  color: #0F172A !important;
+}
+
+.printable-modal p,
+.dark .printable-modal p,
+.printable-modal .text-slate-500,
+.dark .printable-modal .text-slate-500 {
+  color: #64748B !important;
+}
+
+.printable-modal .text-\[\#8B6B4A\],
+.dark .printable-modal .text-\[\#8B6B4A\] {
+  color: #8B6B4A !important;
+}
+
+.printable-modal .bg-slate-50,
+.dark .printable-modal .bg-slate-50 {
+  background-color: #F8FAFC !important;
 }
 
 @keyframes floatSlow {
@@ -64,6 +161,22 @@
   animation: floatSlow 6s ease-in-out infinite;
 }
 
+.animate-float-slow {
+  animation: floatSlow 18s ease-in-out infinite;
+}
+
+.animate-float-slow-reverse {
+  animation: floatSlowReverse 22s ease-in-out infinite;
+}
+
+.animate-cellular-float {
+  animation: cellularFloat 25s ease-in-out infinite;
+}
+
+.animate-pulse-scan {
+  animation: pulseScan 16s ease-in-out infinite;
+}
+
 .animate-pulse-glow {
   animation: pulseGlow 4s ease-in-out infinite;
 }
@@ -74,6 +187,51 @@
 
 .animate-progress-bar {
   animation: expandBar 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cellularFloat {
+  0%, 100% {
+    transform: translate(0px, 0px) rotate(0deg);
+  }
+  25% {
+    transform: translate(12px, -18px) rotate(3deg);
+  }
+  50% {
+    transform: translate(-10px, -28px) rotate(-2deg);
+  }
+  75% {
+    transform: translate(-18px, -10px) rotate(4deg);
+  }
+}
+
+@keyframes floatSlowReverse {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(14px) scale(0.98);
+  }
+}
+
+@keyframes pulseScan {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-cellular-float,
+  .animate-float-slow,
+  .animate-float-slow-reverse,
+  .animate-pulse-scan,
+  .animate-ping {
+    animation: none !important;
+  }
 }
 
 /* Custom Scrollbar */

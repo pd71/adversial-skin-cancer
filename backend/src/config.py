@@ -43,7 +43,7 @@ NUM_CLASSES = len(CLASS_NAMES)
 # Training defaults (skeleton)
 # -----------------------------
 IMAGE_SIZE = (224, 224)
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 EPOCHS = 20
 LEARNING_RATE = 1e-4
 VALIDATION_SPLIT = 0.15

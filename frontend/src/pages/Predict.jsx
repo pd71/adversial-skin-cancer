@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  AlertTriangle, X, HeartPulse, 
-  Stethoscope, FileText, Printer, Sparkles, Eye, RefreshCw, ShieldCheck, Loader2
+import {
+  AlertTriangle, X, HeartPulse,
+  Stethoscope, FileText, Printer, Sparkles, Eye, RefreshCw, ShieldCheck, Loader2, Clock, Cpu
 } from 'lucide-react';
 import ImageUploadCard from '../components/ImageUploadCard';
+import MedicalCellularBackground from '../components/MedicalCellularBackground';
 import { getApiBaseUrl } from '../config';
 
 const API_BASE = getApiBaseUrl();
@@ -12,7 +13,7 @@ const API_BASE = getApiBaseUrl();
 const Predict = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  
+
   // Ref for smooth scrolling to prediction results
   const resultsRef = useRef(null);
 
@@ -160,7 +161,7 @@ const Predict = () => {
     <div className="min-h-screen bg-[#F8F5F0] text-[#3B2F2F] pb-16 font-sans">
       
       <div className="max-w-[1200px] mx-auto px-6 pt-8 space-y-8">
-        
+
         {/* Page Title Header */}
         <div className="border-b border-[#E7DDD2] pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -212,7 +213,7 @@ const Predict = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
-            
+
             {/* Age Approx */}
             <div className="space-y-1.5">
               <label className="font-bold text-[#3B2F2F]">Patient Age (Approx)</label>
@@ -332,11 +333,10 @@ const Predict = () => {
           <button
             onClick={handlePredict}
             disabled={loading || !selectedFile}
-            className={`px-8 py-3.5 rounded-2xl font-extrabold text-white text-sm shadow-lg transition-all flex items-center space-x-2 ${
-              loading || !selectedFile
+            className={`px-8 py-3.5 rounded-2xl font-extrabold text-white text-sm shadow-lg transition-all flex items-center space-x-2 ${loading || !selectedFile
                 ? 'bg-[#A69585] cursor-not-allowed opacity-60'
                 : 'bg-gradient-to-r from-[#8B6B4A] to-[#6E5338] hover:from-[#7A5B3D] hover:to-[#5E442B] shadow-[#8B6B4A]/25'
-            }`}
+              }`}
           >
             {loading ? (
               <>
@@ -363,46 +363,128 @@ const Predict = () => {
         {/* Results Section */}
         {predictionData && ensembleData && (
           <div ref={resultsRef} className="space-y-8 animate-fade-in scroll-mt-24">
-            
-            {/* Soft Voting Ensemble Prediction Card */}
-            <div className="bg-[#FFFDF9] rounded-2xl p-6 md:p-8 shadow-md border border-[#E7DDD2] space-y-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F4EFE6] pb-4 gap-3">
-                <div>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#8B6B4A]/10 text-[#8B6B4A] uppercase tracking-wider">
-                    Ensemble Classification Architecture
+
+            {/* 2-Column Side-by-Side Model Comparison Dashboard (50/50 Layout) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+
+              {/* LEFT COLUMN (50%): Soft Voting Ensemble Prediction Card */}
+              <div className="bg-[#FFFDF9] rounded-2xl p-6 md:p-8 shadow-md border border-[#E7DDD2] flex flex-col justify-between space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F4EFE6] pb-4 gap-3">
+                  <div>
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#8B6B4A]/10 text-[#8B6B4A] uppercase tracking-wider">
+                      Ensemble Classification Architecture
+                    </span>
+                    <h3 className="text-xl font-bold text-[#3B2F2F] mt-1">Soft Voting Ensemble Prediction</h3>
+                  </div>
+                  <span className="text-sm font-extrabold px-4 py-1.5 rounded-full bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
+                    {ensembleData.confidence_pct}% ({ensembleData.confidence_level})
                   </span>
-                  <h3 className="text-xl font-bold text-[#3B2F2F] mt-1">Soft Voting Ensemble Prediction</h3>
                 </div>
-                <span className="text-sm font-extrabold px-4 py-1.5 rounded-full bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
-                  {ensembleData.confidence_pct}% ({ensembleData.confidence_level})
-                </span>
+
+                <div className="space-y-5 flex-1 flex flex-col justify-between">
+                  <div className="text-3xl font-extrabold text-[#3B2F2F]">
+                    {ensembleData.lesion_name}
+                    <span className="text-base font-semibold text-[#7A624A] ml-3">({ensembleData.class_code?.toUpperCase()})</span>
+                  </div>
+
+                  {/* Top Probability Candidates */}
+                  <div className="space-y-3 pt-2">
+                    <div className="text-xs font-bold text-[#7A624A] uppercase tracking-wider">Top Probability Candidates</div>
+                    {ensembleData.top_3_predictions?.map((cand, idx) => (
+                      <div key={idx} className="space-y-1.5">
+                        <div className="flex justify-between text-xs font-semibold text-[#3B2F2F]">
+                          <span>{cand.lesion_name} ({cand.class_code?.toUpperCase()})</span>
+                          <span className="text-[#8B6B4A] font-bold">{cand.confidence_pct}%</span>
+                        </div>
+                        <div className="w-full bg-[#F4EFE6] h-2.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-[#8B6B4A] to-[#6E5338] h-full rounded-full transition-all duration-700 animate-progress-bar"
+                            style={{ width: `${cand.confidence_pct}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-5">
-                <div className="text-3xl font-extrabold text-[#3B2F2F]">
-                  {ensembleData.lesion_name}
-                  <span className="text-base font-semibold text-[#7A624A] ml-3">({ensembleData.class_code?.toUpperCase()})</span>
-                </div>
-
-                {/* Top Probability Candidates */}
-                <div className="space-y-3 pt-2">
-                  <div className="text-xs font-bold text-[#7A624A] uppercase tracking-wider">Top Probability Candidates</div>
-                  {ensembleData.top_3_predictions?.map((cand, idx) => (
-                    <div key={idx} className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-semibold text-[#3B2F2F]">
-                        <span>{cand.lesion_name} ({cand.class_code?.toUpperCase()})</span>
-                        <span className="text-[#8B6B4A] font-bold">{cand.confidence_pct}%</span>
+              {/* RIGHT COLUMN (50%): RASC-Net Prediction Card */}
+              {(() => {
+                const rascData = predictionData?.rasc_net_proposed;
+                return (
+                  <div className="bg-[#FFFDF9] rounded-2xl p-6 md:p-8 shadow-md border border-[#E7DDD2] flex flex-col justify-between space-y-6 relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F4EFE6] pb-4 gap-3">
+                      <div>
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#8B6B4A]/10 text-[#8B6B4A] uppercase tracking-wider border border-[#E7DDD2]">
+                          PROPOSED RASC-NET
+                        </span>
+                        <h3 className="text-xl font-bold text-[#3B2F2F] mt-1">RASC-Net Prediction</h3>
                       </div>
-                      <div className="w-full bg-[#F4EFE6] h-2.5 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-gradient-to-r from-[#8B6B4A] to-[#6E5338] h-full rounded-full transition-all duration-700 animate-progress-bar" 
-                          style={{ width: `${cand.confidence_pct}%` }}
-                        ></div>
-                      </div>
+                      <span className="text-xs font-extrabold px-3.5 py-1 rounded-full bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2] flex items-center space-x-1.5">
+                        {rascData ? (
+                          <span>{rascData.confidence_pct}% ({rascData.confidence_level})</span>
+                        ) : (
+                          <>
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Under Optimization</span>
+                          </>
+                        )}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </div>
+
+                    {rascData ? (
+                      <div className="space-y-5 flex-1 flex flex-col justify-between">
+                        <div className="text-3xl font-extrabold text-[#3B2F2F]">
+                          {rascData.lesion_name}
+                          <span className="text-base font-semibold text-[#7A624A] ml-3">({rascData.class_code?.toUpperCase()})</span>
+                        </div>
+
+                        {/* Top Probability Candidates */}
+                        <div className="space-y-3 pt-2">
+                          <div className="text-xs font-bold text-[#7A624A] uppercase tracking-wider">Top Probability Candidates</div>
+                          {rascData.top_3_predictions?.map((cand, idx) => (
+                            <div key={idx} className="space-y-1.5">
+                              <div className="flex justify-between text-xs font-semibold text-[#3B2F2F]">
+                                <span>{cand.lesion_name} ({cand.class_code?.toUpperCase()})</span>
+                                <span className="text-[#8B6B4A] font-bold">{cand.confidence_pct}%</span>
+                              </div>
+                              <div className="w-full bg-[#F4EFE6] h-2.5 rounded-full overflow-hidden">
+                                <div
+                                  className="bg-gradient-to-r from-[#8B6B4A] to-[#6E5338] h-full rounded-full transition-all duration-700 animate-progress-bar"
+                                  style={{ width: `${cand.confidence_pct}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Polished Coming Soon Center State */
+                      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4 my-auto">
+                        <div className="w-16 h-16 rounded-2xl bg-[#F4EFE6] border border-[#E7DDD2] flex items-center justify-center text-[#8B6B4A] shadow-xs relative">
+                          <Cpu className="w-8 h-8 text-[#8B6B4A]" />
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#8B6B4A] rounded-full border-2 border-[#FFFDF9] animate-ping" />
+                        </div>
+
+                        <div className="space-y-1.5 max-w-sm">
+                          <h4 className="font-extrabold text-base text-[#3B2F2F]">
+                            RASC-Net Model Evaluation in Progress
+                          </h4>
+                          <p className="text-xs text-[#7A624A] leading-relaxed">
+                            RASC-Net model evaluation is being finalized. Standalone prediction results will be available here soon.
+                          </p>
+                        </div>
+
+                        <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#F8F5F0] border border-[#E7DDD2] text-[11px] font-semibold text-[#8B6B4A]">
+                          <Sparkles className="w-3.5 h-3.5 text-[#8B6B4A]" />
+                          <span>Curriculum Adversarial Optimization Active</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
             </div>
 
             {/* Grad-CAM Card Section */}
@@ -444,26 +526,24 @@ const Predict = () => {
 
               {gradcamData && !gradcamLoading && (
                 <div className="bg-[#F8F5F0] p-6 rounded-2xl border border-[#E7DDD2] space-y-4">
-                  
+
                   {/* Tab Switcher */}
                   <div className="flex items-center justify-center space-x-2 border-b border-[#E7DDD2] pb-3">
                     <button
                       onClick={() => setActiveGradcamTab('overlay')}
-                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        activeGradcamTab === 'overlay'
+                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${activeGradcamTab === 'overlay'
                           ? 'bg-[#8B6B4A] text-white shadow-xs'
                           : 'bg-[#FFFDF9] text-[#7A624A] hover:text-[#3B2F2F]'
-                      }`}
+                        }`}
                     >
                       Heatmap Overlay
                     </button>
                     <button
                       onClick={() => setActiveGradcamTab('heatmap')}
-                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        activeGradcamTab === 'heatmap'
+                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${activeGradcamTab === 'heatmap'
                           ? 'bg-[#8B6B4A] text-white shadow-xs'
                           : 'bg-[#FFFDF9] text-[#7A624A] hover:text-[#3B2F2F]'
-                      }`}
+                        }`}
                     >
                       Raw Spatial Activation
                     </button>
@@ -471,10 +551,10 @@ const Predict = () => {
 
                   {/* Image Display */}
                   <div className="text-center space-y-3">
-                    <img 
-                      src={activeGradcamTab === 'overlay' ? gradcamData.overlay_image : gradcamData.gradcam_image} 
-                      alt="Grad-CAM Visualization" 
-                      className="max-w-[420px] w-full mx-auto rounded-2xl border border-[#E7DDD2] shadow-md object-cover hover:scale-[1.02] transition-transform duration-300" 
+                    <img
+                      src={activeGradcamTab === 'overlay' ? gradcamData.overlay_image : gradcamData.gradcam_image}
+                      alt="Grad-CAM Visualization"
+                      className="max-w-[420px] w-full mx-auto rounded-2xl border border-[#E7DDD2] shadow-md object-cover hover:scale-[1.02] transition-transform duration-300"
                     />
                     <p className="text-xs text-[#7A624A] max-w-lg mx-auto leading-relaxed">
                       Highlighted red and warm spatial activations pinpoint exact anatomical structures driving diagnostic decision ({gradcamData.predicted_class?.toUpperCase()} - {gradcamData.confidence}% confidence).
@@ -500,13 +580,12 @@ const Predict = () => {
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    <span className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase border ${
-                      riskData.risk_level === 'HIGH RISK' 
-                        ? 'bg-[#FBF0EF] text-[#C0564B] border-[#F2D6D3]' 
-                        : riskData.risk_level === 'MODERATE RISK' 
-                        ? 'bg-[#FDF5E6] text-[#C88A36] border-[#F5E2C4]' 
-                        : 'bg-[#E8F0E9] text-[#5F8D6E] border-[#C5DDC8]'
-                    }`}>
+                    <span className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase border ${riskData.risk_level === 'HIGH RISK'
+                        ? 'bg-[#FBF0EF] text-[#C0564B] border-[#F2D6D3]'
+                        : riskData.risk_level === 'MODERATE RISK'
+                          ? 'bg-[#FDF5E6] text-[#C88A36] border-[#F5E2C4]'
+                          : 'bg-[#E8F0E9] text-[#5F8D6E] border-[#C5DDC8]'
+                      }`}>
                       {riskData.risk_level} ({riskData.score} PTS)
                     </span>
 
@@ -538,69 +617,85 @@ const Predict = () => {
 
       {/* Hospital Assessment PDF Report Modal */}
       {isReportModalOpen && ensembleData && (
-        <div className="fixed inset-0 bg-[#2A2118]/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white text-slate-900 rounded-2xl max-w-3xl w-full p-8 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex justify-between items-center border-b pb-4 no-print">
-              <h3 className="text-lg font-bold text-[#3B2F2F]">Hospital Clinical Assessment Report</h3>
+        <div className="fixed inset-0 bg-[#2A2118]/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white text-slate-900 rounded-2xl max-w-3xl w-full p-8 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto printable-modal">
+
+            {/* Modal Control Bar */}
+            <div className="flex justify-between items-center border-b border-slate-200 pb-4 no-print">
+              <h3 className="text-lg font-bold flex items-center space-x-2" style={{ color: '#0F172A' }}>
+                <FileText className="w-5 h-5" style={{ color: '#8B6B4A' }} />
+                <span style={{ color: '#0F172A' }}>Hospital Clinical Assessment Report</span>
+              </h3>
               <div className="flex items-center space-x-2">
-                <button onClick={handlePrintReport} className="px-3.5 py-1.5 bg-[#F4EFE6] hover:bg-[#E7DDD2] text-[#3B2F2F] text-xs font-semibold rounded-xl border border-[#E7DDD2] flex items-center space-x-1">
-                  <Printer className="w-3.5 h-3.5" /> <span>Print</span>
+                <button 
+                  onClick={handlePrintReport} 
+                  className="px-4 py-2 bg-[#8B6B4A] hover:bg-[#6E5338] text-white text-xs font-bold rounded-xl shadow-xs flex items-center space-x-1.5 transition-all cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" /> <span>Print Report</span>
                 </button>
-                <button onClick={() => setIsReportModalOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-xl">
-                  <X className="w-5 h-5 text-slate-500" />
+                <button 
+                  onClick={() => setIsReportModalOpen(false)} 
+                  className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* Header */}
+            {/* Document Header */}
             <div className="text-center border-b-2 border-slate-900 pb-4">
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">GENERAL HOSPITAL DERMATOLOGY CENTER</h2>
-              <h4 className="text-sm font-bold text-[#8B6B4A]">AI SKIN CANCER CLINICAL ASSESSMENT REPORT</h4>
-              <p className="text-xs text-slate-500 mt-1">Generated via Soft Voting Ensemble Architecture</p>
+              <h2 className="text-xl font-black tracking-tight" style={{ color: '#0F172A' }}>GENERAL HOSPITAL DERMATOLOGY CENTER</h2>
+              <h4 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#8B6B4A' }}>AI SKIN CANCER CLINICAL ASSESSMENT REPORT</h4>
+              <p className="text-xs mt-1" style={{ color: '#64748B' }}>Generated via Soft Voting Ensemble Architecture</p>
             </div>
 
-            {/* Patient Metadata */}
+            {/* Section 1: Patient Clinical Information */}
             <div className="space-y-2 text-xs">
-              <h4 className="font-bold border-b pb-1">1. Patient Clinical Information</h4>
-              <div className="grid grid-cols-2 gap-2 text-slate-700">
-                <div><strong>Age Approx:</strong> {metadata.age_approx} yrs</div>
-                <div><strong>Sex:</strong> {metadata.sex}</div>
-                <div><strong>Anatomical Site:</strong> {metadata.anatom_site_1} ({metadata.anatom_site_2})</div>
-                <div><strong>Melanocytic:</strong> {metadata.melanocytic}</div>
-                <div><strong>Concomitant Biopsy:</strong> {metadata.concomitant_biopsy}</div>
-                <div><strong>Diagnosis History:</strong> {metadata.diagnosis_1}</div>
+              <h4 className="font-bold border-b border-slate-300 pb-1 text-slate-900 uppercase tracking-wider">1. Patient Clinical Information</h4>
+              <div className="grid grid-cols-2 gap-3 text-slate-800 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <div><span className="text-slate-500 font-semibold">Age Approx:</span> <strong className="text-slate-900">{metadata.age_approx || '60'} yrs</strong></div>
+                <div><span className="text-slate-500 font-semibold">Sex:</span> <strong className="text-slate-900">{metadata.sex || 'male'}</strong></div>
+                <div><span className="text-slate-500 font-semibold">Anatomical Site:</span> <strong className="text-slate-900">{metadata.anatom_site_1 || 'torso'} ({metadata.anatom_site_2 || 'cheek'})</strong></div>
+                <div><span className="text-slate-500 font-semibold">Melanocytic:</span> <strong className="text-slate-900">{metadata.melanocytic || 'false'}</strong></div>
+                <div><span className="text-slate-500 font-semibold">Concomitant Biopsy:</span> <strong className="text-slate-900">{metadata.concomitant_biopsy || 'false'}</strong></div>
+                <div><span className="text-slate-500 font-semibold">Diagnosis History:</span> <strong className="text-slate-900">{metadata.diagnosis_1 || 'none'}</strong></div>
               </div>
             </div>
 
-            {/* Prediction */}
-            <div className="space-y-2 text-xs bg-slate-50 p-4 rounded-xl border">
-              <h4 className="font-bold border-b pb-1 text-slate-900">2. Soft Voting Ensemble Visual Classification</h4>
-              <div className="flex justify-between items-center text-sm font-bold">
-                <span>{ensembleData.lesion_name} ({ensembleData.class_code?.toUpperCase() || ''})</span>
-                <span className="text-[#8B6B4A]">{ensembleData.confidence_pct}% ({ensembleData.confidence_level})</span>
+            {/* Section 2: Visual Classification */}
+            <div className="space-y-2 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <h4 className="font-bold border-b border-slate-200 pb-1 text-slate-900 uppercase tracking-wider">2. Soft Voting Ensemble Visual Classification</h4>
+              <div className="flex justify-between items-center text-sm font-extrabold text-slate-900 pt-1">
+                <span className="text-slate-900">{ensembleData.lesion_name} ({ensembleData.class_code?.toUpperCase() || ''})</span>
+                <span className="text-[#8B6B4A] font-extrabold">{ensembleData.confidence_pct}% ({ensembleData.confidence_level})</span>
               </div>
             </div>
 
-            {/* Grad-CAM Section in Report */}
+            {/* Section 3: Grad-CAM Heatmap */}
             {gradcamData && gradcamData.overlay_image && (
-              <div className="space-y-2 text-xs border-t pt-3">
-                <h4 className="font-bold border-b pb-1">3. Grad-CAM Spatial Visual Explainability Heatmap</h4>
-                <div className="flex items-center space-x-4 bg-slate-50 p-3 rounded-xl border">
-                  <img src={gradcamData.overlay_image} alt="Grad-CAM Overlay" className="w-28 h-28 object-cover rounded-lg border" />
-                  <p className="text-slate-600 leading-relaxed">
-                    Red and warm spatial activations highlight exact anatomical structures driving diagnosis decision.
+              <div className="space-y-2 text-xs border-t border-slate-200 pt-3">
+                <h4 className="font-bold border-b border-slate-200 pb-1 text-slate-900 uppercase tracking-wider">3. Grad-CAM Spatial Visual Explainability Heatmap</h4>
+                <div className="flex items-center space-x-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <img src={gradcamData.overlay_image} alt="Grad-CAM Overlay" className="w-28 h-28 object-cover rounded-lg border border-slate-300 shadow-xs" />
+                  <p className="text-slate-700 leading-relaxed text-xs">
+                    Red and warm spatial activations highlight exact anatomical structures driving diagnostic decision.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Risk Assessment */}
+            {/* Section 4: Risk Assessment */}
             {riskData && (
-              <div className="space-y-2 text-xs bg-emerald-50/50 p-4 rounded-xl border border-emerald-200">
-                <h4 className="font-bold border-b border-emerald-200 pb-1 text-emerald-900">{gradcamData ? '4.' : '3.'} Rule-Based Clinical Risk Assessment</h4>
-                <div><strong>Risk Level:</strong> <span className="font-extrabold text-emerald-800">{riskData.risk_level} ({riskData.score} PTS)</span></div>
-                <div><strong>Recommendation:</strong> {riskData.recommendation}</div>
+              <div className="space-y-2 text-xs bg-emerald-50/70 p-4 rounded-xl border border-emerald-200 text-emerald-950">
+                <h4 className="font-bold border-b border-emerald-200 pb-1 text-emerald-900 uppercase tracking-wider">
+                  {gradcamData ? '4.' : '3.'} Rule-Based Clinical Risk Assessment
+                </h4>
+                <div className="pt-1">
+                  <strong className="text-emerald-950">Risk Level:</strong> <span className="font-extrabold text-emerald-800">{riskData.risk_level} ({riskData.score} PTS)</span>
+                </div>
+                <div>
+                  <strong className="text-emerald-950">Recommendation:</strong> <span className="text-emerald-900">{riskData.recommendation}</span>
+                </div>
               </div>
             )}
 
@@ -612,7 +707,7 @@ const Predict = () => {
       {loading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#3B2F2F]/40 backdrop-blur-md transition-all duration-300 animate-fade-in pointer-events-auto">
           <div className="bg-[#FFFDF9]/95 backdrop-blur-xl border border-[#E7DDD2] shadow-2xl rounded-3xl p-8 max-w-md w-full text-center space-y-6 transform scale-100 transition-all">
-            
+
             {/* Clinical Animated Scanner Ring */}
             <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
               <div className="absolute inset-0 rounded-full border-4 border-[#8B6B4A]/20 border-t-[#8B6B4A] animate-spin" />

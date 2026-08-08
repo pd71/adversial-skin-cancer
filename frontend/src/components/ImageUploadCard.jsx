@@ -99,18 +99,18 @@ const ImageUploadCard = ({
   };
 
   return (
-    <div className="bg-[#FFFDF9] rounded-2xl p-6 shadow-md border border-[#E7DDD2] space-y-5 relative transition-all">
+    <div className="bg-[#EFE7DC] dark:bg-[#251E19] rounded-2xl p-6 shadow-md border border-[#D9CBB9] dark:border-[#3D3128] space-y-5 relative transition-all">
       
       {/* Header */}
-      <div className="border-b border-[#F4EFE6] pb-4 flex items-center justify-between">
+      <div className="border-b border-[#D9CBB9] dark:border-[#3D3128] pb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-semibold text-[#3B2F2F] flex items-center space-x-2">
-            <UploadCloud className="w-5 h-5 text-[#8B6B4A]" />
+          <h3 className="text-xl font-semibold text-[#3B2F2F] dark:text-[#F5EFEB] flex items-center space-x-2">
+            <UploadCloud className="w-5 h-5 text-[#8B6B4A] dark:text-[#D4AF37]" />
             <span>{title}</span>
           </h3>
-          <p className="text-xs text-[#7A624A] mt-0.5">{description}</p>
+          <p className="text-xs text-[#7A624A] dark:text-[#B8A594] mt-0.5">{description}</p>
         </div>
-        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#F4EFE6] text-[#8B6B4A] border border-[#E7DDD2]">
+        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#E5DACE] dark:bg-[#322822] text-[#8B6B4A] dark:text-[#D4AF37] border border-[#D9CBB9] dark:border-[#4A3B30]">
           Multi-Source Upload
         </span>
       </div>
@@ -127,7 +127,7 @@ const ImageUploadCard = ({
       {imagePreview ? (
         <div className="space-y-4">
           {/* Large ~300px Preview */}
-          <div className="w-full max-w-[320px] h-[300px] mx-auto rounded-2xl overflow-hidden border border-[#E7DDD2] shadow-md bg-white relative group">
+          <div className="w-full max-w-[320px] h-[300px] mx-auto rounded-2xl overflow-hidden border border-[#D9CBB9] dark:border-[#3D3128] shadow-md bg-white relative group">
             <img src={imagePreview} alt="Selected Lesion Preview" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-[#3B2F2F]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
               <button
@@ -149,14 +149,14 @@ const ImageUploadCard = ({
 
           {/* File Metadata Details */}
           {fileDetails && (
-            <div className="bg-[#F8F5F0] p-3.5 rounded-xl border border-[#E7DDD2] text-xs text-[#5C4A38] space-y-1.5 max-w-[320px] mx-auto">
-              <div className="font-bold text-[#3B2F2F] truncate flex items-center space-x-1.5">
-                <ImageIcon className="w-4 h-4 text-[#8B6B4A] flex-shrink-0" />
+            <div className="bg-[#E5DACE] dark:bg-[#1C1713] p-3.5 rounded-xl border border-[#D9CBB9] dark:border-[#3D3128] text-xs text-[#5C4A38] space-y-1.5 max-w-[320px] mx-auto">
+              <div className="font-bold text-[#3B2F2F] dark:text-[#F5EFEB] truncate flex items-center space-x-1.5">
+                <ImageIcon className="w-4 h-4 text-[#8B6B4A] dark:text-[#D4AF37] flex-shrink-0" />
                 <span className="truncate">{fileDetails.name}</span>
               </div>
-              <div className="flex justify-between text-[#7A624A] pt-1 border-t border-[#E7DDD2]">
-                <span>Size: <strong className="text-[#3B2F2F]">{fileDetails.size}</strong></span>
-                <span>Dimensions: <strong className="text-[#3B2F2F]">{fileDetails.resolution}</strong></span>
+              <div className="flex justify-between text-[#7A624A] dark:text-[#B8A594] pt-1 border-t border-[#D9CBB9] dark:border-[#3D3128]">
+                <span>Size: <strong className="text-[#3B2F2F] dark:text-[#F5EFEB]">{fileDetails.size}</strong></span>
+                <span>Dimensions: <strong className="text-[#3B2F2F] dark:text-[#F5EFEB]">{fileDetails.resolution}</strong></span>
               </div>
             </div>
           )}
@@ -166,7 +166,7 @@ const ImageUploadCard = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-2 bg-[#F4EFE6] hover:bg-[#E7DDD2] text-[#8B6B4A] rounded-xl border border-[#E7DDD2] text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-xs"
+              className="px-4 py-2 bg-[#E5DACE] dark:bg-[#322822] hover:bg-[#D9CBB9] text-[#8B6B4A] dark:text-[#D4AF37] rounded-xl border border-[#D9CBB9] dark:border-[#4A3B30] text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-xs"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Replace Image</span>
@@ -188,11 +188,16 @@ const ImageUploadCard = ({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer ${
+          className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer relative overflow-hidden shadow-xs ${
             isDragging
-              ? 'border-[#8B6B4A] bg-[#F4EFE6] scale-[1.02] shadow-md'
-              : 'border-[#E7DDD2] hover:border-[#8B6B4A] bg-[#F8F5F0]/60 hover:bg-[#F4EFE6]/40'
+              ? 'border-[#8B6B4A] bg-[#E5DACE] scale-[1.02] shadow-md'
+              : 'border-[#D9CBB9] dark:border-[#4A3B30] hover:border-[#8B6B4A]'
           }`}
+          style={{
+            backgroundImage: `linear-gradient(rgba(235, 222, 206, 0.90), rgba(218, 200, 180, 0.92)), url('/dermoscopy_bg.png')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
         >
           <div className="space-y-4 max-w-sm mx-auto">
             <div className="w-16 h-16 bg-[#F4EFE6] text-[#8B6B4A] rounded-full flex items-center justify-center mx-auto shadow-xs border border-[#E7DDD2]">
