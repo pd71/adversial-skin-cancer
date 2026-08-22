@@ -6,11 +6,20 @@ export const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
   }
 
-  if (typeof window !== 'undefined' && window.location.hostname.includes('.devtunnels.ms')) {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
     const protocol = window.location.protocol;
-    // Replace -5173 with -5000 for backend devtunnel
-    const hostname = window.location.hostname.replace('-5173', '-5000');
-    return `${protocol}//${hostname}`;
+
+    if (hostname.includes('.devtunnels.ms')) {
+      if (hostname === 'dermshield.asse.devtunnels.ms') {
+        return `${protocol}//dermshield-5000.asse.devtunnels.ms`;
+      }
+      return `${protocol}//${hostname.replace(/-80|-5173/, '-5000')}`;
+    }
+
+    if (hostname.includes('loca.lt')) {
+      return `${protocol}//dermshield-api.loca.lt`;
+    }
   }
 
   return 'http://localhost:5000';
